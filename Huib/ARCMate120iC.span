@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<span xmlns="ESA-Telerobotics-Lab-SPAN" version="0.3">
+    <world>
+        <scene axis="200" label="world">
+		<structure convention="dh">
+		<vrml name="120ic_link_0.wrl" />
+			<joint a="150" d="525" alpha="pi/2" label="1" axis_scale="1" fixed="0" channel="1" visu="0">
+			<vrml name="120ic_link_1.wrl" />
+				<joint a="790" d="0" alpha="0" theta="pi/2" label="2" axis_scale="1" fixed="0" channel="1" visu="0">
+				<vrml name="120ic_link_2.wrl" />
+					<joint a="250" d="0" alpha="pi/2" theta="0" label="3" axis_scale="1" fixed="0" visu="0">
+					<vrml name="120ic_link_3.wrl" />
+						<joint a="0" d="835" alpha="pi/2" theta="pi" label="4" axis_scale="1" fixed="0" visu="0">
+						<vrml name="120ic_link_4.wrl" />
+							<joint a="0" d="0" alpha="pi/2" theta="pi" label="5" axis_scale="1" fixed="0" visu="0">
+							<vrml name="120ic_link_5.wrl" />
+								<joint a="0" d="100" alpha="0" label="E" axis_scale="1" fixed="0" channel="1" visu="1">
+								<vrml name="120ic_link_6.wrl" />
+								</joint>
+							</joint>
+						</joint>
+					</joint>
+				</joint>
+			</joint>
+		</structure>
+        </scene>
+    </world>
+</span>
