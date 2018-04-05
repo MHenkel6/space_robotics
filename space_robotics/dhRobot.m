@@ -84,14 +84,10 @@ classdef dhRobot < handle
             D = self.d;
             % go from endpoint to wrist point
             W = P - R * [0; 0; D(6)];
-
-
             % two solutions for first angle, each with four sub-solutions
             theta = zeros(6,8);
             theta(1, 1:4) = atan2(W(2), W(1));
             theta(1, 5:8) = theta(1, 1) - pi;
-
-
             % planar RR link part of solution
             L1 = A(2);
             L2 = sqrt(A(3)^2 + D(4)^2);
@@ -104,7 +100,6 @@ classdef dhRobot < handle
                 end
                 ind = (1+4*(ii-1)):(4*ii);
                 Vy = W(3) - D(1);
-                disp(Vy)
                 % check if solution is possible
                 distance = sqrt(Vx^2 + Vy^2);   % distance from origin to desired point
                 if distance > L1+L2 || (L1 ~= L2 && distance < abs(L1-L2))            % no solution
@@ -112,13 +107,17 @@ classdef dhRobot < handle
                     theta(3, ind) = NaN;
                 elseif distance == L1 + L2      % one solution, outer range
                     theta(3, ind) = phi;
-                    theta(2, ind) = atan2(Vy, Vx) - pi/2;
+                    if ii == 1
+                        theta(2, ind) = -atan2(Vx, Vy);
+                    else
+                        theta(2, ind) = atan2(Vx, Vy);
+                    end
                 elseif distance == abs(L1 - L2) % one solution, inner range
                     theta(3, ind) = phi + pi;
                     if L1 > L2
-                        theta(2, ind) = atan2(Vy, Vx)  + pi/2;
+                        theta(2, ind) = atan2(Vy, Vx);
                     else
-                        theta(2, ind) = atan2(-Vy, -Vx) - pi/2;
+                        theta(2, ind) = -atan2(-Vx, -Vy);
                     end
                 else                            % two solutions
                     C_theta3 = (distance^2 - L1^2 - L2^2) / (2 * L1 * L2);
@@ -134,15 +133,14 @@ classdef dhRobot < handle
                     if (L1^2 + distance^2) < L2^2 % take into account possibility of obtuse angle with sine rule
                         beta = [pi pi -pi -pi] - beta;
                     end
-                    theta(2, ind)  = atan2(Vy, Vx) + beta - pi/2;
-                end
-                % some adjustments for when first link is pointing backwards
-                if ii == 2
-                    theta(2, ind) = theta(2, ind) + pi;
+                    psi = -atan2(Vx, Vy); % angle between vertical axis and line O1 - O3
+                    if ii == 1
+                        theta(2, ind) = psi + beta;
+                    else
+                        theta(2, ind) = -psi + beta;
+                    end
                 end
             end
-
-
             % solution for ZYZ-like wrist rotation
             for ii = 1:2:7
                 % got orientation of O3 axes
@@ -159,12 +157,10 @@ classdef dhRobot < handle
                 theta(6, ii)   = atan2(Rt(3,2), -Rt(3,1));
                 theta(6, ii+1) = atan2(-Rt(3,2), Rt(3,1));
             end
-            
             % select desired configuration
             theta = theta(:, config)';
-            disp(self.forwardKinematics(theta, 6))
             if any(isnan(theta))
-                errordlg('Desired location not possible')
+                errordlg('Desired location not possible', 'Error', 'modal')
                 theta = [];
             end
         end

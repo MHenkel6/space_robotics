@@ -39,7 +39,6 @@ classdef dhRobot < handle
                 self.links(ii).update(q_new(ii));
                 self.ATotal{ii} = transMatPost({self.links(1:ii).A_current});
             end
-            self.updateJoints();
         end
         
         %% Forward kinematics (don't save to internal memory)

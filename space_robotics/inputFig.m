@@ -11,7 +11,7 @@ classdef inputFig < handle
         
         posMinMax = [-2000 2000;...
                      -2000 2000;...
-                     -2000 2000];
+                     -2000 3000];
         jointMinMax = [-180 180;...
                        -180 180;...
                        -180 180;...
@@ -40,6 +40,10 @@ classdef inputFig < handle
         robotKin;
         udps;
         outFigure;
+        
+        % listener objects for sliders
+        jointListener
+        posListener
     end
     
     methods
@@ -192,7 +196,8 @@ classdef inputFig < handle
                     'Min',              self.posMinMax(ii,1),...
                     'Max',              self.posMinMax(ii,2),...
                     'SliderStep',       [0.001 0.05],...
-                    'Value',            P(ii));
+                    'Value',            P(ii),...
+                    'Callback',         {@self.sliderCallback, 'pos'});
                 self.posSliderBox(ii) = uicontrol(...
                     'Parent',           self.fig,...
                     'Style',            'text',...
@@ -205,8 +210,9 @@ classdef inputFig < handle
                                          self.boxHeight]);
                 % add listener to update numeric value in posSlider
                 % continuously, not only after release of mouse.
-                addlistener(self.posSlider(ii) ,'Value', 'PostSet', ...
-                    @(hObj, evtData) self.updateSliderValue(hObj, evtData, self.posSliderBox(ii), 'pos'));
+                self.posListener = [self.posListener, ... 
+                    addlistener(self.posSlider(ii) ,'Value', 'PostSet', ...
+                    @(hObj, evtData) self.updateSliderValue(hObj, evtData, self.posSliderBox(ii), 'pos'))];
             end
             lastPos = self.posSlider(3).Position;
             
@@ -226,7 +232,8 @@ classdef inputFig < handle
                     'Min',              self.jointMinMax(ii,1),...
                     'Max',              self.jointMinMax(ii,2),...
                     'SliderStep',       [0.001 0.05],...
-                    'Value',            q(ii)*180/pi);
+                    'Value',            q(ii)*180/pi,...
+                    'Callback',         {@self.sliderCallback, 'joint'});
                 self.jointSliderBox(ii) = uicontrol(...
                     'Parent',           self.fig,...
                     'Style',            'text',...
@@ -239,8 +246,9 @@ classdef inputFig < handle
                                          self.boxHeight]);
                 % add listener to update numeric value in posSlider
                 % continuously, not only after release of mouse.
-                addlistener(self.jointSlider(ii) ,'Value', 'PostSet', ...
-                    @(hObj, evtData) self.updateSliderValue(hObj, evtData, self.jointSliderBox(ii), 'joint'));
+                self.jointListener = [self.jointListener,...
+                    addlistener(self.jointSlider(ii) ,'Value', 'PostSet', ...
+                    @(hObj, evtData) self.updateSliderValue(hObj, evtData, self.jointSliderBox(ii), 'joint'))];
             end
             
             
@@ -307,6 +315,18 @@ classdef inputFig < handle
             % TODO remove below line (causes immediate update, used for
             % testing)
             self.updateQ(qNext);
+            % update sliders to new position
+            [self.jointListener.Enabled, self.posListener.Enabled] = deal(false);
+            qValues = num2cell(self.robotKin.q*180/pi);
+            [self.jointSlider.Value] = qValues{:};
+            qValues = cellfun(@(x) sprintf('%.2f', x), qValues, 'UniformOutput',false);
+            [self.jointSliderBox.String] = qValues{:};
+            posValues = num2cell(self.robotKin.getPos(6));
+            [self.posSlider.Value] = posValues{:};
+            posValues = cellfun(@(x) sprintf('%.2f', x), posValues, 'UniformOutput',false);
+            [self.posInput.String] = posValues{:};
+            [self.posSliderBox.String] = posValues{:};
+            [self.jointListener.Enabled, self.posListener.Enabled] = deal(true);
         end
         
         
@@ -328,6 +348,32 @@ classdef inputFig < handle
             end
             self.updateQ(qNext);
         end
+        
+        %% slider callback, called when releasing slider,
+        % updates the other inputs to reflect the current position
+        function sliderCallback(self, ~, ~, type)
+            switch type
+                case 'pos' % update joint orientation sliders
+                    [self.jointListener.Enabled] = deal(false);
+                    values = num2cell(self.robotKin.q*180/pi);
+                    [self.jointSlider.Value] = values{:};
+                    values = cellfun(@(x) sprintf('%.2f', x), values, 'UniformOutput',false);
+                    [self.jointSliderBox.String] = values{:};
+                    values = cellfun(@(x) sprintf('%.2f', x), num2cell(self.robotKin.getPos(6)), 'UniformOutput',false);
+                    [self.posInput.String] = values{:};
+                    [self.jointListener.Enabled] = deal(true);
+                case 'joint' % update end effector position sliders & boxes
+                    [self.posListener.Enabled] = deal(false);
+                    values = num2cell(self.robotKin.getPos(6));
+                    [self.posSlider.Value] = values{:};
+                    values = cellfun(@(x) sprintf('%.2f', x), values, 'UniformOutput',false);
+                    [self.posSliderBox.String] = values{:};
+                    [self.posInput.String] = values{:};
+                    [self.posListener.Enabled] = deal(true);
+            end
+        end
+        
+        
         
         %% Update joint parameters & send to outputs
         function updateQ(self, qNext)
