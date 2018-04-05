@@ -7,7 +7,11 @@ classdef dhRobot < handle
         n;          % number of links
         q;          %
         ATotal;     %
-        linkSegments;%
+        
+        % DH parameters
+        a;
+        d;
+        alpha;
     end
     
     %% Public methods
@@ -24,13 +28,28 @@ classdef dhRobot < handle
             
             self.n = length(a);
             self.ATotal = cell(1, self.n);
-            self.linkSegments = zeros(3, self.n+1);
+            self.a = a;
+            self.d = d;
+            self.alpha = alpha;
             for ii = 1:self.n
                 self.links = [self.links, dhLink(a(ii), d(ii), alpha(ii), theta(ii), type(ii), delta_q(ii))];
                 self.ATotal{ii} = transMatPost({self.links(1:ii).A_current});
-                self.linkSegments(:,ii+1) = self.ATotal{ii}(1:3, 4);
             end
+            self.q = zeros(1, self.n);
         end
+        
+        
+        %% Get current position of link N
+        function P = getPos(self, n)
+            P = self.ATotal{n}(1:3,4);
+        end
+        
+        
+        %% Get current rotation matrix of link N
+        function C = getRot(self, n)
+            C = self.ATotal{n}(1:3,1:3);
+        end
+        
         
         %% Update DH parameters of all the links
         function updateParams(self, q_new)
@@ -39,7 +58,6 @@ classdef dhRobot < handle
                 self.links(ii).update(q_new(ii));
                 self.ATotal{ii} = transMatPost({self.links(1:ii).A_current});
             end
-            self.updateJoints();
         end
         
         %% Forward kinematics (don't save to internal memory)
@@ -50,7 +68,7 @@ classdef dhRobot < handle
                  )
             A_list = cell(1, index); % initialize cell array of DH matrices
             for ii = 1:index
-                A_list{ii} = self.links(ii).A_out(q_new);
+                A_list{ii} = self.links(ii).calcA(q_new(ii));
             end
             A_out = transMatPost(A_list);
         end
@@ -86,7 +104,7 @@ classdef dhRobot < handle
                 end
                 ind = (1+4*(ii-1)):(4*ii);
                 Vy = W(3) - D(1);
-
+                disp(Vy)
                 % check if solution is possible
                 distance = sqrt(Vx^2 + Vy^2);   % distance from origin to desired point
                 if distance > L1+L2 || (L1 ~= L2 && distance < abs(L1-L2))            % no solution
@@ -144,9 +162,10 @@ classdef dhRobot < handle
             
             % select desired configuration
             theta = theta(:, config)';
+            disp(self.forwardKinematics(theta, 6))
             if any(isnan(theta))
                 errordlg('Desired location not possible')
-                return
+                theta = [];
             end
         end
     end

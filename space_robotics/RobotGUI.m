@@ -1,7 +1,10 @@
 function RobotGUI()
     %ROBOTGUI opens GUI for control & output of ARC Mate 120iC robot simulation
     
-    % DH parameters
+    % add paths to required .m files
+    addpath('helper_functions')
+    
+    % set up DH parameters
     a = zeros(1,6);
     d = zeros(1,6);
     alpha = [pi/2 0 pi/2 pi/2 pi/2 0];
@@ -16,12 +19,13 @@ function RobotGUI()
     % Set up objects;
     robotKin = dhRobot(a, d, alpha, zeros(1,6), 'RRRRRR', dTheta); % robot inv & forward kinematics
     udps = dsp.UDPSender; % udp packet sender
+    outFigure = outputFig(robotKin.ATotal{6}(1:3,4));
+    inFigure = inputFig(robotKin, udps, outFigure);
     
-    % input class
-        % figure A
-        % position input 
-    % output class
-        % figure B
-    
+    % creat figure windows
+    outFigure.createFigure;
+    inFigure.createFigure;
+        
+    % Open up spanviewer
+    winopen('spanviewer_files\ARCMate120iC.span');
 end
-
