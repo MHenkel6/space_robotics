@@ -12,15 +12,11 @@ classdef inputFig < handle
         posMinMax = [-2000 2000;...
                      -2000 2000;...
                      -2000 3000];
-        jointMinMax = [-180 180;...
-                       -180 180;...
-                       -180 180;...
-                       -180 180;...
-                       -180 180;...
-                       -180 180];
     end
     
     properties
+        jointMinMax; 
+        
         % Graphics handles
         fig;
         posInput = gobjects(3,1);
@@ -51,6 +47,7 @@ classdef inputFig < handle
             self.robotKin = robotKin;
             self.udps = udps;
             self.outFigure = outFigure;
+            self.jointMinMax = [robotKin.qMin', robotKin.qMax']*180/pi;
         end
         
         function createFigure(self)
@@ -299,6 +296,7 @@ classdef inputFig < handle
         function moveToLoc(self, P, C)
             qNext = self.robotKin.inverseKinematics(P, C, self.configSelect.Value);
             if isempty(qNext) % if qNext is empty, move is not possible
+                errordlg('Desired location not possible', 'Error', 'modal')
                 return
             end
             %{
@@ -341,6 +339,7 @@ classdef inputFig < handle
                         self.robotKin.getRot(6), ...
                         self.configSelect.Value);
                     if isempty(qNext) % if qNext is empty, move is not possible
+                        errordlg('Desired location not possible', 'Error', 'modal')
                         return
                     end
                 case 'joint'

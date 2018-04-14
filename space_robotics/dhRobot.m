@@ -5,8 +5,10 @@ classdef dhRobot < handle
     properties 
         links;      % dhLink classes from base to end effector 
         n;          % number of links
-        q;          %
-        ATotal;     %
+        q;          % current joint parameters
+        qMin;       % n length vector for joint lower limits
+        qMax;       % n length vector for joint upper limits
+        ATotal;     % cell array of 4x4 matrices with transforms to each link
         
         % DH parameters
         a;
@@ -24,7 +26,9 @@ classdef dhRobot < handle
                 alpha, ...
                 theta, ...
                 type, ...
-                delta_q)
+                delta_q, ...
+                q_min, ...
+                q_max)
             
             self.n = length(a);
             self.ATotal = cell(1, self.n);
@@ -36,6 +40,8 @@ classdef dhRobot < handle
                 self.ATotal{ii} = transMatPost({self.links(1:ii).A_current});
             end
             self.q = zeros(1, self.n);
+            self.qMin = q_min;
+            self.qMax = q_max;
         end
         
         
@@ -74,6 +80,8 @@ classdef dhRobot < handle
         end
         
         %% Inverse Kinematics calculation
+        % returns 1 x n vector with desired joint q. If the position lies  
+        % outside of the reachable space, it returns an empty array.
         function theta ... [1x6] [rad] joint parameters to reach desired state
               = inverseKinematics(self, ...
                 P, ... [3x1] [mm] position vector
@@ -159,8 +167,10 @@ classdef dhRobot < handle
             end
             % select desired configuration
             theta = theta(:, config)';
+            % enforce joint limits
+            theta(theta < self.qMin | theta > self.qMax) = NaN;
+            % check if move is possible
             if any(isnan(theta))
-                errordlg('Desired location not possible', 'Error', 'modal')
                 theta = [];
             end
         end
