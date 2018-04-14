@@ -43,7 +43,7 @@ else
     if size(tm) >1
         td = tm; %Tm is the times for each of the  data points
     else
-        td = [0;tm/(size(qstates,1)-1)*cumsum(ones((size(qstates,1)-1),1))] % Or tm is only the end time, each point takes equal amount of time
+        td = [0;tm/(size(qstates,1)-1)*cumsum(ones((size(qstates,1)-1),1))]; % Or tm is only the end time, each point takes equal amount of time
     end
     for ii = 1:1:1
         alpha = constraints(2,ii);%maximum acceleration
