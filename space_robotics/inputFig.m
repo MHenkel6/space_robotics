@@ -314,7 +314,7 @@ classdef inputFig < handle
             self.goButton.Enable = 'off';
             [self.jointSlider.Enable] = deal('off');
             [self.posSlider.Enable] = deal('off');
-            Qplan = path_planning(10,self.t_step,[self.robotKin.q;
+            Qplan = path_planning(5,self.t_step,[self.robotKin.q;
                                            qNext], ...
                                           [self.robotKin.qdotMax;
                                            0.3*self.robotKin.qdotMax]);

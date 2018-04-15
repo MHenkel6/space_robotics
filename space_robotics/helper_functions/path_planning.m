@@ -11,6 +11,14 @@ function [ q,vq,aq, t ] = path_planning(tm, dt,qstates,constraints )
 %qstate = initial configuration of joints
 %type = type of motion, 'Cubic', 'Quintic' or 'LSPB'
 % constraints = 2x6 set of constraints on velocities and accelerations
+
+% Compute fastest possible time
+if ( size(qstates,1) ==2)% If 0 is passed for time, make move as fast as possible;
+    tfastest = max(constraints(1,:)./constraints(2,:)+(qstates(2,:)-qstates(1,:))./constraints(1,:));
+    if tm<tfastest
+        tm = tfastest;
+    end
+end
 tarray = 0:dt:tm(end);
 q = zeros(size(tarray,2),6);
 vq = zeros(size(tarray,2),6);
