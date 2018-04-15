@@ -8,7 +8,7 @@ classdef inputFig < handle
         horMargin = 0.01;
         verMargin = 0.01;
         fontSize  = 12;
-        t_step = 0.01;
+        t_step = 0.016;
         
         posMinMax = [-2000 2000;...
                      -2000 2000;...
@@ -381,21 +381,22 @@ classdef inputFig < handle
         
         %% Timer callback - animate movement
         function timerCallback(self, ~, ~)
+            if self.n > self.nMax
+                stop(self.timerObj);
+                return
+            end
             % get next joint orientations
             qNext = self.qMatrix(self.n, :);
             self.n = self.n + 1;
             % send to spanviewer and output figure
             self.udps(qNext);
             self.updateQ(qNext);
-            if self.n > self.nMax
-                stop(self.timerObj);
-            end
         end
         
         %% Timer stop function, for ending move
         function timerStopFunction(self, ~, ~)
             % update robot class
-            qNext = self.qMatrix(self.n, :);
+            qNext = self.qMatrix(self.n-1, :);
             self.robotKin.updateParams(qNext);
             % update sliders to new position
             [self.jointListener.Enabled, self.posListener.Enabled] = deal(false);
