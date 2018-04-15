@@ -26,7 +26,7 @@ aq = zeros(size(tarray,2),6);
 %Always assumed that start and end velocity of path are at 0 velocity
 if size(qstates,1) ==2
     for ii = 1:1:6
-        if qstates(2,ii)-qstates(1,ii) > 1e-8
+        if abs(qstates(2,ii)-qstates(1,ii)) > 1e-8
             vmax = constraints(1,ii);
             if vmax>2*abs(qstates(2,ii)-qstates(1,ii))/tm(end)
                 vmax = 2*(qstates(2,ii)-qstates(1,ii))/tm(end);
@@ -46,6 +46,8 @@ if size(qstates,1) ==2
             q(end-tbindex+1:end,ii) = qstates(2,ii)-0.5*alpha*(tm-tarray((end-tbindex+1):end)).^2;
             vq(end-tbindex+1:end,ii) = alpha*(tm-tarray((end-tbindex+1):end));
             aq(end-tbindex+1:end,ii) = -alpha;
+        else
+            q(:,ii) = qstates(1,ii);
         end
     end
 else
