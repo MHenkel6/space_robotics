@@ -145,6 +145,17 @@ classdef outputFig < handle
             addpoints(self.pathLine, self.posNow(1), self.posNow(2), self.posNow(3));
             drawnow;
         end
+        %% Update plots of angles, velocities and accelerations
+        function updatePlots(self, ...
+                             q, ...
+                             vq,...
+                             aq,...
+                             t)
+                  
+            plot(self.axAngle(1),t,q);
+            plot(self.axAngle(2),t,vq);
+            plot(self.axAngle(3),t,aq);            
+        end
     end
 end
 

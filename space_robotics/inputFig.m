@@ -314,13 +314,14 @@ classdef inputFig < handle
             self.goButton.Enable = 'off';
             [self.jointSlider.Enable] = deal('off');
             [self.posSlider.Enable] = deal('off');
-            Qplan = path_planning(5,self.t_step,[self.robotKin.q;
+            [Qplan,vq,aq,tarray] = path_planning(5,self.t_step,[self.robotKin.q;
                                            qNext], ...
                                           [self.robotKin.qdotMax;
                                            0.3*self.robotKin.qdotMax]);
             % TODO replace angular acceleration maxima with realistic
             % values
             % TODO plot joint vel, pos and accel in output fig A
+            self.outFigure.updatePlots(Qplan,vq,aq,tarray)
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
