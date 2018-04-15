@@ -311,11 +311,13 @@ classdef inputFig < handle
                 return
             end
             self.n = 1;
+            self.goButton.Enable = 'off';
+            [self.jointSlider.Enable] = deal('off');
+            [self.posSlider.Enable] = deal('off');
             Qplan = path_planning(10,self.t_step,[self.robotKin.q;
                                            qNext], ...
                                           [self.robotKin.qdotMax;
                                            0.3*self.robotKin.qdotMax]);
-                                       size(Qplan)
             % TODO replace angular acceleration maxima with realistic
             % values
             % TODO plot joint vel, pos and accel in output fig A
@@ -398,6 +400,9 @@ classdef inputFig < handle
             % update robot class
             qNext = self.qMatrix(self.n-1, :);
             self.robotKin.updateParams(qNext);
+            self.goButton.Enable = 'on';
+            [self.jointSlider.Enable] = deal('on');
+            [self.posSlider.Enable] = deal('on');
             % update sliders to new position
             [self.jointListener.Enabled, self.posListener.Enabled] = deal(false);
             qValues = num2cell(self.robotKin.q*180/pi);
