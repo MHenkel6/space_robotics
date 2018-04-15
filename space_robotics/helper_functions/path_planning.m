@@ -19,6 +19,8 @@ if ( size(qstates,1) ==2)% If 0 is passed for time, make move as fast as possibl
         tm = tfastest;
     end
 end
+%%Round tm to nearest multiple of dt
+tm(end) = round(tm(end)/dt)*dt;
 tarray = 0:dt:tm(end);
 q = zeros(size(tarray,2),6);
 vq = zeros(size(tarray,2),6);
@@ -49,6 +51,7 @@ if size(qstates,1) ==2
         else
             q(:,ii) = qstates(1,ii);
         end
+            
     end
 else
     if size(tm) >1
