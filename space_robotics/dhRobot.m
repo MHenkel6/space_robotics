@@ -98,7 +98,7 @@ classdef dhRobot < handle
             % two solutions for first angle, each with four sub-solutions
             theta = zeros(6,8);
             theta(1, 1:4) = atan2(W(2), W(1));
-            theta(1, 5:8) = theta(1, 1) - pi;
+            theta(1, 5:8) = atan2(-W(2), -W(1));
             % planar RR link part of solution
             L1 = A(2);
             L2 = sqrt(A(3)^2 + D(4)^2);
