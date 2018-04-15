@@ -32,6 +32,9 @@ R = [dot(xprime,x),dot(xprime,y),dot(xprime,z);dot(yprime,x),dot(yprime,y),dot(y
 radius = norm(Pstart-Pcenter);
 psistart = 0;%Angle begins at 0
 [psiend,axis] =   anglevec(Pstart-Pcenter,Pend-Pcenter);
+if abs(psiend) <1e-10
+    psiend =2*pi;
+end
 if (righthanded == -1) && (int8(dot(axis,zprime))==1) %left handed rotation, positive angle
     psiend =psiend-2*pi;
 elseif (righthanded == 1) && (int8(dot(axis,zprime))== -1) %left handed rotation, opposite angle is chosen
@@ -41,6 +44,7 @@ elseif (righthanded == -1) && (int8(dot(axis,zprime))== -1)
 elseif (int8(dot(axis,zprime))== 0)
     psiend = righthanded*psiend;
 end
+
 %% Interpolate path variable
     vmaxpsi = vp/radius;
     if vp/radius>2*abs(psiend)/t
