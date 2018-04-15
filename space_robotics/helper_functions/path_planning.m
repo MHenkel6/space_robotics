@@ -26,25 +26,27 @@ aq = zeros(size(tarray,2),6);
 %Always assumed that start and end velocity of path are at 0 velocity
 if size(qstates,1) ==2
     for ii = 1:1:6
-        vmax = constraints(1,ii);
-        if vmax>2*abs(qstates(2,ii)-qstates(1,ii))/tm(end)
-            vmax = 2*(qstates(2,ii)-qstates(1,ii))/tm(end);
+        if qstates(2,ii)-qstates(1,ii) > 1e-8
+            vmax = constraints(1,ii);
+            if vmax>2*abs(qstates(2,ii)-qstates(1,ii))/tm(end)
+                vmax = 2*(qstates(2,ii)-qstates(1,ii))/tm(end);
+            end
+            alpha =vmax^2/(vmax*tm+qstates(1,ii)-qstates(2,ii));
+            tb = (vmax*tm+qstates(1,ii)-qstates(2,ii))/vmax;
+            tbindex = round(tb/dt);
+            tbround = tbindex*dt;
+            q(1:tbindex,ii) = qstates(1,ii)+0.5*alpha*tarray(1:tbindex).^2;
+            vq(1:tbindex,ii) = alpha*tarray(1:tbindex);
+            aq(1:tbindex,ii) = alpha;
+            if tbindex~=(size(q,1)-tbindex)
+                q(tbindex+1:end-tbindex,ii)= qstates(1,ii)+alpha*tbround*(tarray(tbindex+1:end-tbindex)-tbround/2);
+                vq(tbindex+1:end-tbindex,ii) = vmax;
+                aq(tbindex+1:end-tbindex,ii) = 0;
+            end
+            q(end-tbindex+1:end,ii) = qstates(2,ii)-0.5*alpha*(tm-tarray((end-tbindex+1):end)).^2;
+            vq(end-tbindex+1:end,ii) = alpha*(tm-tarray((end-tbindex+1):end));
+            aq(end-tbindex+1:end,ii) = -alpha;
         end
-        alpha =vmax^2/(vmax*tm+qstates(1,ii)-qstates(2,ii));
-        tb = (vmax*tm+qstates(1,ii)-qstates(2,ii))/vmax;
-        tbindex = round(tb/dt);
-        tbround = tbindex*dt;
-        q(1:tbindex,ii) = qstates(1,ii)+0.5*alpha*tarray(1:tbindex).^2;
-        vq(1:tbindex,ii) = alpha*tarray(1:tbindex);
-        aq(1:tbindex,ii) = alpha;
-        if tbindex~=(size(q,1)-tbindex)
-            q(tbindex+1:end-tbindex,ii)= qstates(1,ii)+alpha*tbround*(tarray(tbindex+1:end-tbindex)-tbround/2);
-            vq(tbindex+1:end-tbindex,ii) = vmax;
-            aq(tbindex+1:end-tbindex,ii) = 0;
-        end
-        q(end-tbindex+1:end,ii) = qstates(2,ii)-0.5*alpha*(tm-tarray((end-tbindex+1):end)).^2;
-        vq(end-tbindex+1:end,ii) = alpha*(tm-tarray((end-tbindex+1):end));
-        aq(end-tbindex+1:end,ii) = -alpha;
     end
 else
     if size(tm) >1
