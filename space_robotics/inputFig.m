@@ -14,8 +14,11 @@ classdef inputFig < handle
                      -2000 3000];
     end
     
-    properties
-        jointMinMax; 
+    properties (Access=private)
+        jointMinMax;
+        qMatrix; % matrix containing next move joint angles
+        n;       % current index for qMatrix
+        nMax;    % last index in qMatrix
         
         % Graphics handles
         fig;
@@ -36,6 +39,7 @@ classdef inputFig < handle
         robotKin;
         udps;
         outFigure;
+        timerObj;
         
         % listener objects for sliders
         jointListener
@@ -48,6 +52,12 @@ classdef inputFig < handle
             self.udps = udps;
             self.outFigure = outFigure;
             self.jointMinMax = [robotKin.qMin', robotKin.qMax']*180/pi;
+            self.timerObj = timer(...
+                'ExecutionMode',        'fixedRate',...
+                'Period',               t_step,...
+                'TimerFcn',             @self.timerCallback,...
+                'StopFcn',              @self.timerStopFunction...
+                );
         end
         
         function createFigure(self)
@@ -299,32 +309,13 @@ classdef inputFig < handle
                 errordlg('Desired location not possible', 'Error', 'modal')
                 return
             end
-            %{
-            TODO joint-space interpolation from current q to qNext
-                return 3 Mx6 matrices of consecutive joint pos, vel & accel
-                plot joint vel, pos and accel in output fig A
-            TODO go through matrix at set time intervals
-                update output position figure at each time step in output
-                fig B
-                send joint pos at each time step to spanviewer
-                stop loop at end of move
-            %}
-            
-            % TODO remove below line (causes immediate update, used for
-            % testing)
-            self.updateQ(qNext);
-            % update sliders to new position
-            [self.jointListener.Enabled, self.posListener.Enabled] = deal(false);
-            qValues = num2cell(self.robotKin.q*180/pi);
-            [self.jointSlider.Value] = qValues{:};
-            qValues = cellfun(@(x) sprintf('%.2f', x), qValues, 'UniformOutput',false);
-            [self.jointSliderBox.String] = qValues{:};
-            posValues = num2cell(self.robotKin.getPos(6));
-            [self.posSlider.Value] = posValues{:};
-            posValues = cellfun(@(x) sprintf('%.2f', x), posValues, 'UniformOutput',false);
-            [self.posInput.String] = posValues{:};
-            [self.posSliderBox.String] = posValues{:};
-            [self.jointListener.Enabled, self.posListener.Enabled] = deal(true);
+            self.n = 1;
+            % TODO replace qMatrix with one from path planning
+            % TODO plot joint vel, pos and accel in output fig A
+            self.qMatrix = zeros(1, 6);
+            [self.nMax, ~] = size(self.qMatrix);
+            % start timer/animation
+            start(self.timerObj);
         end
         
         
@@ -378,7 +369,38 @@ classdef inputFig < handle
         function updateQ(self, qNext)
             self.udps(qNext);
             self.robotKin.updateParams(qNext);
-            self.outFigure.updatePos(self.robotKin.getPos(6))
+            self.outFigure.updatePos(self.robotKin.getPos(6));
+        end
+        
+        %% Timer callback - animate movement
+        function timerCallback(self, ~, ~)
+            if self.n > self.nMax
+                stop(self.timerObj);
+            end
+            % get next joint orientations
+            qNext = self.qMatrix(self.n, :);
+            self.n = self.n + 1;
+            % send to spanviewer and output figure
+            self.udps(qNext);
+            self.outFigure.updatePos(self.robotKin.getPos(6));
+        end
+        
+        %% Timer stop function, for ending move
+        function timerStopFunction(self, ~, ~)
+            % update robot class
+            self.robotKin.updateParams(qNext);
+            % update sliders to new position
+            [self.jointListener.Enabled, self.posListener.Enabled] = deal(false);
+            qValues = num2cell(self.robotKin.q*180/pi);
+            [self.jointSlider.Value] = qValues{:};
+            qValues = cellfun(@(x) sprintf('%.2f', x), qValues, 'UniformOutput',false);
+            [self.jointSliderBox.String] = qValues{:};
+            posValues = num2cell(self.robotKin.getPos(6));
+            [self.posSlider.Value] = posValues{:};
+            posValues = cellfun(@(x) sprintf('%.2f', x), posValues, 'UniformOutput',false);
+            [self.posInput.String] = posValues{:};
+            [self.posSliderBox.String] = posValues{:};
+            [self.jointListener.Enabled, self.posListener.Enabled] = deal(true);
         end
     end
 end
