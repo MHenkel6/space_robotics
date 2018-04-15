@@ -44,7 +44,7 @@ else
     else
         td = [0;tm/(size(qstates,1)-1)*cumsum(ones((size(qstates,1)-1),1))]; % Or tm is only the end time, each point takes equal amount of time
     end
-    for ii = 1:1:1
+    for ii = 1:1:6
         alpha = constraints(2,ii);%maximum acceleration
         %Calculate velocities
         vec = (qstates(2:end,ii)-qstates(1:end-1,ii))./(td(2:end)-td(1:end-1));

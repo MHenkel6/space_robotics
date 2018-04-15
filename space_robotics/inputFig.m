@@ -8,6 +8,7 @@ classdef inputFig < handle
         horMargin = 0.01;
         verMargin = 0.01;
         fontSize  = 12;
+        t_step = 0.01;
         
         posMinMax = [-2000 2000;...
                      -2000 2000;...
@@ -54,7 +55,7 @@ classdef inputFig < handle
             self.jointMinMax = [robotKin.qMin', robotKin.qMax']*180/pi;
             self.timerObj = timer(...
                 'ExecutionMode',        'fixedRate',...
-                'Period',               t_step,...
+                'Period',               self.t_step,...
                 'TimerFcn',             @self.timerCallback,...
                 'StopFcn',              @self.timerStopFunction...
                 );
@@ -310,9 +311,15 @@ classdef inputFig < handle
                 return
             end
             self.n = 1;
-            % TODO replace qMatrix with one from path planning
+            Qplan = path_planning(10,self.t_step,[self.robotKin.q;
+                                           qNext], ...
+                                          [self.robotKin.qdotMax;
+                                           0.3*self.robotKin.qdotMax]);
+                                       size(Qplan)
+            % TODO replace angular acceleration maxima with realistic
+            % values
             % TODO plot joint vel, pos and accel in output fig A
-            self.qMatrix = zeros(1, 6);
+            self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
             start(self.timerObj);
@@ -374,20 +381,21 @@ classdef inputFig < handle
         
         %% Timer callback - animate movement
         function timerCallback(self, ~, ~)
-            if self.n > self.nMax
-                stop(self.timerObj);
-            end
             % get next joint orientations
             qNext = self.qMatrix(self.n, :);
             self.n = self.n + 1;
             % send to spanviewer and output figure
             self.udps(qNext);
-            self.outFigure.updatePos(self.robotKin.getPos(6));
+            self.updateQ(qNext);
+            if self.n > self.nMax
+                stop(self.timerObj);
+            end
         end
         
         %% Timer stop function, for ending move
         function timerStopFunction(self, ~, ~)
             % update robot class
+            qNext = self.qMatrix(self.n, :);
             self.robotKin.updateParams(qNext);
             % update sliders to new position
             [self.jointListener.Enabled, self.posListener.Enabled] = deal(false);

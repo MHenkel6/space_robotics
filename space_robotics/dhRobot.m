@@ -9,6 +9,7 @@ classdef dhRobot < handle
         qMin;       % n length vector for joint lower limits
         qMax;       % n length vector for joint upper limits
         ATotal;     % cell array of 4x4 matrices with transforms to each link
+        qdotMax;    % n length vector for maximum joint velocities
         
         % DH parameters
         a;
@@ -28,7 +29,8 @@ classdef dhRobot < handle
                 type, ...
                 delta_q, ...
                 q_min, ...
-                q_max)
+                q_max, ...
+                qdotMax)
             
             self.n = length(a);
             self.ATotal = cell(1, self.n);
@@ -42,6 +44,7 @@ classdef dhRobot < handle
             self.q = zeros(1, self.n);
             self.qMin = q_min;
             self.qMax = q_max;
+            self.qdotMax = qdotMax;
         end
         
         
