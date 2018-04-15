@@ -13,7 +13,6 @@ function [ q,vq,aq, t ] = path_planning(tm, dt,qstates,constraints )
 % constraints = 2x6 set of constraints on velocities and accelerations
 tarray = 0:dt:tm(end);
 q = zeros(size(tarray,2),6);
-size(q)
 vq = zeros(size(tarray,2),6);
 aq = zeros(size(tarray,2),6);
 %Always assumed that start and end velocity of path are at 0 velocity
