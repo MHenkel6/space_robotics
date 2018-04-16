@@ -1,6 +1,5 @@
 function [ transMatTotal ] = transMatPre(transMats)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+% pre-multiply transformation matrices in a cell array
 transMatTotal = transMats{1};
 for ii = 2:numel(transMats)
     transMatTotal = transMats{ii} * transMatTotal;
