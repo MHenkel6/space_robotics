@@ -14,7 +14,7 @@ function [ q,vq,aq, t ] = path_planning(tm, dt,qstates,constraints )
 
 % Compute fastest possible time
 if ( size(qstates,1) ==2)% If 0 is passed for time, make move as fast as possible;
-    tfastest = max(constraints(1,:)./constraints(2,:)+(qstates(2,:)-qstates(1,:))./constraints(1,:));
+    tfastest= max(constraints(1,:)./constraints(2,:)+abs(qstates(2,:)-qstates(1,:))./constraints(1,:));
     if tm<tfastest
         tm = tfastest;
     end
@@ -29,13 +29,14 @@ aq = zeros(size(tarray,2),6);
 if size(qstates,1) ==2
     for ii = 1:1:6
         if abs(qstates(2,ii)-qstates(1,ii)) > 1e-8
-            vmax = constraints(1,ii);
-            if vmax>2*abs(qstates(2,ii)-qstates(1,ii))/tm(end)
+            vmax = constraints(1,ii)*sign(qstates(2,ii)-qstates(1,ii));
+            if abs(vmax)>2*abs(qstates(2,ii)-qstates(1,ii))/tm(end)
                 vmax = 2*(qstates(2,ii)-qstates(1,ii))/tm(end);
             end
+
             alpha =vmax^2/(vmax*tm+qstates(1,ii)-qstates(2,ii));
-            tb = (vmax*tm+qstates(1,ii)-qstates(2,ii))/vmax;
-            tbindex = round(tb/dt);
+            tb = (vmax*tm-(qstates(2,ii)-qstates(1,ii)))/vmax;
+            tbindex = floor(tb/dt);
             tbround = tbindex*dt;
             q(1:tbindex,ii) = qstates(1,ii)+0.5*alpha*tarray(1:tbindex).^2;
             vq(1:tbindex,ii) = alpha*tarray(1:tbindex);
