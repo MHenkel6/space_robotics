@@ -108,7 +108,7 @@ classdef outputFig < handle
             
             % 3d-path line graph
             self.pathLine = animatedline(self.axPos, ...
-                self.posNow(1), self.posNow(2), self.posNow(3));
+                self.posNow(1)/1000, self.posNow(2)/1000, self.posNow(3)/1000);
             hold on
             plot3([0 1], [0 0], [0 0], 'r-', 'LineWidth', 2);
             plot3([0 0], [0 1], [0 0], 'g-', 'LineWidth', 2);

@@ -5,6 +5,9 @@ function RobotGUI()
     addpath('helper_functions')
     addpath('font')
     
+    % open ps3Sim input simulink model
+    ps3Sim;
+    
     % set up DH parameters
     a = zeros(1,6);
     d = zeros(1,6);
@@ -30,5 +33,5 @@ function RobotGUI()
     inFigure.createFigure;
         
     % Open up spanviewer
-%      winopen('spanviewer_files\ARCMate120iC.span');
+    winopen('spanviewer_files\ARCMate120iC.span');
 end
