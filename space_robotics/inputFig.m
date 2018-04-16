@@ -474,6 +474,7 @@ classdef inputFig < handle
             % show sanitized input 
             self.textBox.String = inputString;
             textMoves = self.fontRender.sequentializeText(upper(inputString));
+            disp(textMoves)
             % TODO: translate linear and circular consecutive paths to
             % jointspace and total path, execute move animation
         end

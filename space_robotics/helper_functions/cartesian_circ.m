@@ -1,4 +1,4 @@
-function [ X,vX,aX,tarray ] = cartesian_circ( Pstart,Pend,Pcenter,Rotaxis,righthanded,t ,dt, vp )
+function [ X, vX, aX, tarray ] = cartesian_circ( Pstart, Pend, Pcenter, Rotaxis, righthanded, t, dt, vp )
 % Interpolate a circular arc path in cartesian space based on initial and end position  
 %  [x,y,z] and orientation angles [theta,phi,psi], rotation center and
 %  axis, and rotation direction
