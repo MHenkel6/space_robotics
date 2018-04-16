@@ -9,6 +9,7 @@ classdef inputFig < handle
         verMargin = 0.01;
         fontSize  = 12;
         t_step = 0.016;
+        vAlphabet = 1;
         PointSequence = [500,500,500;
                          -500,500,500;
                          -500,-500,500;
@@ -328,8 +329,6 @@ classdef inputFig < handle
         
         %% Callback from routine-button
         function routineMove(self, ~, ~)
-            
-            
             points = self.PointSequence;
             rotations = self.RotationSequence;
             % Perform inverse kinematics
@@ -432,7 +431,7 @@ classdef inputFig < handle
             self.routineButton.Enable = 'off';
             [self.jointSlider.Enable] = deal('off');
             [self.posSlider.Enable] = deal('off');
-            [Qplan,vq,aq,tarray] = path_planning(2,self.t_step,[self.robotKin.q;
+            [Qplan,~,~,~] = path_planning(2,self.t_step,[self.robotKin.q;
                                            qNext], ...
                                           [self.robotKin.qdotMax;
                                            0.3*self.robotKin.qdotMax]);
@@ -444,11 +443,39 @@ classdef inputFig < handle
             start(self.timerObj);
         end
         %% Alphabet Interpolation
-%         function alphabetInterpol(self, Poslist)
-%             for ii = 1:size(Poslist,3)
-%                 if Poslist(3,1,ii) ==0
-%                     [CartInterpol,~,~,~] = cartesian_lin
-%         end
+         function alphabetInterpol(self, Poslist)
+             R = self.robotKin.getRot(6); %axis normal to plane to write in
+             ax  = R(:,3);
+             qmotion =[];
+             for ii = 1:size(Poslist,3)
+                if Poslist(3,1,ii) ==0
+                   CartInterpol = cartLineEqual(Poslist(1,:,ii),Poslist(2,:,ii),...
+                                                self.t_step,self.vAlphabet);
+                   for jj = 1:size(CartInterpol)
+                       q = self.robotKin.inverseKinematics(CartInterpol(jj,:), C, self.configSelect.Value);
+                    if isempty(qNext) % if qNext is empty, move is not possible
+                        errordlg('Desired location not possible', 'Error', 'modal')
+                        return
+                    end
+                       qmotion = [qmotion,q];
+                   end
+                   
+                else
+                   CartInterpol = cartCircEqual(Poslist(1,:,ii),Poslist(2,:,ii),...
+                                                Poslist(4,:,ii),R,Poslist(3,1,ii),...
+                                                self.t_step,self.vAlphabet); 
+                                            
+                   for jj = 1:size(CartInterpol)
+                       q = self.robotKin.inverseKinematics(CartInterpol(jj,:), C, self.configSelect.Value);
+                    if isempty(qNext) % if qNext is empty, move is not possible
+                        errordlg('Desired location not possible', 'Error', 'modal')
+                        return
+                    end
+                       qmotion = [qmotion,q];
+                   end
+                end
+                
+         end
         %% slider listener for semi-continuous updating of current value
         function updateSliderValue(self, ~, eventdata, hValBox, type)
             hValBox.String = sprintf('%.2f', eventdata.AffectedObject.Value);
