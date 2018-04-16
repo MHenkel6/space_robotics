@@ -9,6 +9,22 @@ classdef inputFig < handle
         verMargin = 0.01;
         fontSize  = 12;
         t_step = 0.016;
+        PointSequence = [500,500,500;
+                         -500,500,500;
+                         -500,-500,500;
+                         500,-500,500;
+                         500,500,-500;
+                         -500,500,-500;
+                         -500,-500,-500;
+                         500,-500,-500;];
+        RotationSequence = [0,0,0;
+                           -500,500,500;
+                           -500,-500,500;
+                           500,-500,500;
+                           500,500,-500;
+                           -500,500,-500;
+                           -500,-500,-500;
+                           500,-500,-500;];
         
         posMinMax = [-2000 2000;...
                      -2000 2000;...
@@ -31,6 +47,7 @@ classdef inputFig < handle
         zyxInput = gobjects(3,1);
         configSelect;
         goButton;
+        routineButton;
         posSlider = gobjects(3,1);
         posSliderBox = gobjects(3,1);
         jointSlider = gobjects(6,1);
@@ -189,6 +206,20 @@ classdef inputFig < handle
                                      self.boxHeight],...
                 'Callback',         @self.executeMove);
             
+            %% Quadrant routine
+            
+            self.routineButton = uicontrol(...
+                'Parent',           self.fig,...
+                'Style',            'pushbutton',...
+                'String',           'Quad-Routine',...
+                'Fontsize',         self.fontSize,...
+                'Units',            'normalized',...
+                'Position',         [lastPos(1)+lastPos(3)+9*self.horMargin,...
+                                     1-4*self.boxHeight-3*self.verMargin,...
+                                     3.5*self.boxWidth,...
+                                     3.5*self.boxHeight],...
+                'Callback',         @self.routineMove);
+            
             %% Cartesian position sliders + number boxes
                 
             for ii = 1:3
@@ -302,6 +333,32 @@ classdef inputFig < handle
             end
         end
         
+        %% Callback from routine-button
+        function routineMove(self, ~, ~)
+            self.moveToNeutralState();
+            points = self.PointSequence;
+            rotations = self.RotationSequence;
+            % Perform inverse kinematics
+            qMotion = zeros(6,6);
+            for ii= 1:1:size(points,1)
+                P = points(ii,:);
+                R = rotMat(rotations(ii,1), 'z') * rotMat(rotations(ii,2), 'y') * rotMat(rotations(ii,3), 'x');
+                qMotion(ii,:) = self.robotKin.inverseKinematics(P, R, self.configSelect.Value);
+                
+            end
+            % Pass states to planning
+            [Qplan,vq,aq,tarray] = path_planning(40,self.t_step,[self.robotKin.q;
+                                           qMotion], ...
+                                          [self.robotKin.qdotMax;
+                                           0.3*self.robotKin.qdotMax]);
+            self.outFigure.updatePlots(Qplan,vq,aq,tarray)
+            self.qMatrix = Qplan;
+            [self.nMax, ~] = size(self.qMatrix);
+            % start timer/animation
+            start(self.timerObj);
+            % return to neutral state
+            self.moveToNeutralState();
+        end
         
         %% Move to new location
         function moveToLoc(self, P, C)
@@ -312,6 +369,7 @@ classdef inputFig < handle
             end
             self.n = 1;
             self.goButton.Enable = 'off';
+            self.routineButton.Enable = 'off';
             [self.jointSlider.Enable] = deal('off');
             [self.posSlider.Enable] = deal('off');
             [Qplan,vq,aq,tarray] = path_planning(5,self.t_step,[self.robotKin.q;
@@ -320,7 +378,6 @@ classdef inputFig < handle
                                            0.3*self.robotKin.qdotMax]);
             % TODO replace angular acceleration maxima with realistic
             % values
-            % TODO plot joint vel, pos and accel in output fig A
             self.outFigure.updatePlots(Qplan,vq,aq,tarray)
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
@@ -328,7 +385,26 @@ classdef inputFig < handle
             start(self.timerObj);
         end
         
-        
+        %% Move to neutral state function
+        function moveToNeutralState(self)
+            qNext = [0,0,0,0,0,0];           
+            self.n = 1;
+            self.goButton.Enable = 'off';
+            self.routineButton.Enable = 'off';
+            [self.jointSlider.Enable] = deal('off');
+            [self.posSlider.Enable] = deal('off');
+            [Qplan,vq,aq,tarray] = path_planning(2,self.t_step,[self.robotKin.q;
+                                           qNext], ...
+                                          [self.robotKin.qdotMax;
+                                           0.3*self.robotKin.qdotMax]);
+            % TODO replace angular acceleration maxima with realistic
+            % values
+            self.outFigure.updatePlots(Qplan,vq,aq,tarray)
+            self.qMatrix = Qplan;
+            [self.nMax, ~] = size(self.qMatrix);
+            % start timer/animation
+            start(self.timerObj);
+        end
         
         %% slider listener for semi-continuous updating of current value
         function updateSliderValue(self, ~, eventdata, hValBox, type)
@@ -402,6 +478,7 @@ classdef inputFig < handle
             qNext = self.qMatrix(self.n-1, :);
             self.robotKin.updateParams(qNext);
             self.goButton.Enable = 'on';
+            self.routineButton.Enable = 'on';
             [self.jointSlider.Enable] = deal('on');
             [self.posSlider.Enable] = deal('on');
             % update sliders to new position

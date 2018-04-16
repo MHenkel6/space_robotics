@@ -12,7 +12,7 @@ function [ q,vq,aq, t ] = path_planning(tm, dt,qstates,constraints )
 %type = type of motion, 'Cubic', 'Quintic' or 'LSPB'
 % constraints = 2x6 set of constraints on velocities and accelerations
 
-% Compute fastest possible time
+% Compute fastest possible time for PTP motion
 if ( size(qstates,1) ==2)% If 0 is passed for time, make move as fast as possible;
     tfastest= max(constraints(1,:)./constraints(2,:)+abs(qstates(2,:)-qstates(1,:))./constraints(1,:));
     if tm<tfastest
@@ -65,7 +65,7 @@ else
         %Calculate velocities
         vec = (qstates(2:end,ii)-qstates(1:end-1,ii))./(td(2:end)-td(1:end-1));
         %Calculate blend times
-        t1 = td(2)-sqrt(td(2)^2-2*(qstates(2,ii)-qstates(1,ii))/alpha);
+        t1 = td(2)-sqrt(td(2)^2-2*abs((qstates(2,ii)-qstates(1,ii)))/alpha);
         tend =  (td(end)-td(end-1))-sqrt((td(end)-td(end-1))^2-2*abs(qstates(end,ii)-qstates(end-1,ii))/alpha);
         t1index= round(t1/dt);
         tendindex =round(tend/dt);
@@ -88,7 +88,7 @@ else
                 %transition time
                 startindex = round((td((jj+1)/2)-tk((jj-1)/2)/2)/dt)+1;
                 endindex =   round((td((jj+1)/2)+tk((jj-1)/2)/2)/dt);
-                q(startindex:endindex,ii) =q(startindex-1)+vec((jj-1)/2)*(tarray(startindex:endindex)-tarray(startindex-1))+0.5*alpha*sign(vec((jj+1)/2)-vec((jj-1)/2))*(tarray(startindex:endindex)-tarray(startindex-1)).^2;
+                q(startindex:endindex,ii) =q(startindex-1,ii)+vec((jj-1)/2)*(tarray(startindex:endindex)-tarray(startindex-1))+0.5*alpha*sign(vec((jj+1)/2)-vec((jj-1)/2))*(tarray(startindex:endindex)-tarray(startindex-1)).^2;
                 vq(startindex:endindex,ii) =vec((jj-1)/2)+alpha*sign(vec((jj+1)/2)-vec((jj-1)/2))*(tarray(startindex:endindex)-tarray(startindex-1));
                 aq(startindex:endindex,ii) = alpha*sign(vec((jj+1)/2)-vec((jj-1)/2));
             else %Everything else are linear transition
@@ -103,7 +103,7 @@ else
                     startindex = round((td((jj)/2)+tk((jj)/2-1)/2)/dt)+1;
                     endindex =round((td((jj)/2+1)-tk((jj)/2)/2)/dt);
                 end
-                q(startindex:endindex,ii) =q(startindex-1)+vec((jj)/2)*(tarray(startindex:endindex)-tarray(startindex-1));
+                q(startindex:endindex,ii) =q(startindex-1,ii)+vec((jj)/2)*(tarray(startindex:endindex)-tarray(startindex));
                 vq(startindex:endindex,ii) =vec((jj)/2);
                 aq(startindex:endindex,ii) = 0;
             end
