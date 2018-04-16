@@ -64,6 +64,7 @@ classdef inputFig < handle
     end
     
     methods
+        %% Constructor
         function self = inputFig(robotKin, udps, outFigure)
             self.robotKin = robotKin;
             self.udps = udps;
@@ -90,6 +91,7 @@ classdef inputFig < handle
             self.rtoA = get_param('ps3Sim/locationOut', 'RuntimeObject');
         end
         
+        %% Create initial figure and uicontrol
         function createFigure(self)
             % close possible other instances of same figure
             hFigTemp = findobj(...
@@ -385,6 +387,7 @@ classdef inputFig < handle
             end
         end
         
+        
         %% Callback from routine-button
         function routineMove(self, ~, ~)
             
@@ -415,6 +418,7 @@ classdef inputFig < handle
             % start timer/animation
             start(self.timerObj);
         end
+        
         
         %% Move through given points and orientations
         function moveThroughLocs(self, Plist, Clist)
@@ -451,6 +455,7 @@ classdef inputFig < handle
             self.outFigure.updatePlots(Qplan,vq,aq,tarray)
         end
         
+        
         %% Move to new location
         function moveToLoc(self, P, C)
             qNext = self.robotKin.inverseKinematics(P, C, self.configSelect.Value);
@@ -473,6 +478,7 @@ classdef inputFig < handle
             start(self.timerObj);
         end
         
+        
         %% Move to neutral state function
         function moveToNeutralState(self)
             stop(self.timerObj);
@@ -490,12 +496,16 @@ classdef inputFig < handle
             % start timer/animation
             start(self.timerObj);
         end
+        
+        
         %% Alphabet Interpolation
 %         function alphabetInterpol(self, Poslist)
 %             for ii = 1:size(Poslist,3)
 %                 if Poslist(3,1,ii) ==0
 %                     [CartInterpol,~,~,~] = cartesian_lin
 %         end
+
+
         %% write user specified text in 3D space, using Museum of Arts and Design (MAD) font
         function writeText(self, ~, ~)
             inputString = self.textBox.String;
@@ -530,6 +540,7 @@ classdef inputFig < handle
             self.updateQ(qNext);
         end
         
+        
         %% slider callback, called when releasing slider,
         % updates the other inputs to reflect the current position
         function sliderCallback(self, ~, ~, type)
@@ -555,13 +566,13 @@ classdef inputFig < handle
         end
         
         
-        
         %% Update joint parameters & send to outputs
         function updateQ(self, qNext)
             self.udps(qNext);
             self.robotKin.updateParams(qNext);
             self.outFigure.updatePos(self.robotKin.getPos(6));
         end
+        
         
         %% Timer callback - animate movement
         function timerCallback(self, ~, ~)
@@ -577,6 +588,7 @@ classdef inputFig < handle
             ANext = self.robotKin.forwardKinematics(qNext, 6);
             self.outFigure.updatePos(ANext(1:3,4));
         end
+        
         
         %% Timer stop function, for ending move
         function timerStopFunction(self, ~, ~)
@@ -597,6 +609,7 @@ classdef inputFig < handle
             [self.posSliderBox.String] = posValues{:};
             [self.jointListener.Enabled, self.posListener.Enabled] = deal(true);
         end
+        
         
         %% PS3 controller input callbacks
         function ps3Callback(self,~, ~)
@@ -629,7 +642,7 @@ classdef inputFig < handle
             self.ps3Button.Callback = @self.ps3Start;
         end
         
-        % toggle input button enable (during moves), state must be 'on'/'off'
+        %% toggle input button enable (during moves), state must be 'on'/'off'
         function toggleInputs(self, state)
             self.goButton.Enable = state;
             self.routineButton.Enable = state;
