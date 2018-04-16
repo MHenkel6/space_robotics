@@ -1,8 +1,12 @@
 function RobotGUI()
-    %ROBOTGUI opens GUI for control & output of ARC Mate 120iC robot simulation
+    %% ROBOTGUI opens GUI for control & output of ARC Mate 120iC robot simulation
     
     % add paths to required .m files
     addpath('helper_functions')
+    addpath('font')
+    
+    % open ps3Sim input simulink model
+    ps3Sim;
     
     % set up DH parameters
     a = zeros(1,6);
@@ -17,9 +21,9 @@ function RobotGUI()
     d(6) = 100;
     qMin = [-185, -175, -229, -200, -180, -450]*pi/180;
     qMax = [ 185,   85,  229,  200,  180,  450]*pi/180;
-    
+    qdotMax = [195,178,180,360,360,550]*pi/180; % Maximum joint velocities from data sheet
     % Set up objects;
-    robotKin = dhRobot(a, d, alpha, zeros(1,6), 'RRRRRR', dTheta, qMin, qMax); % robot inv & forward kinematics
+    robotKin = dhRobot(a, d, alpha, zeros(1,6), 'RRRRRR', dTheta, qMin, qMax,qdotMax); % robot inv & forward kinematics
     udps = dsp.UDPSender; % udp packet sender
     outFigure = outputFig(robotKin.ATotal{6}(1:3,4));
     inFigure = inputFig(robotKin, udps, outFigure);
@@ -29,5 +33,5 @@ function RobotGUI()
     inFigure.createFigure;
         
     % Open up spanviewer
-%     winopen('spanviewer_files\ARCMate120iC.span');
+    winopen('spanviewer_files\ARCMate120iC.span');
 end
