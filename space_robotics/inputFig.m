@@ -9,7 +9,7 @@ classdef inputFig < handle
         verMargin = 0.01;
         fontSize  = 12;
         t_step = 0.016;
-        vAlphabet = 1;
+        vAlphabet = 10;
         PointSequence = [750,750,750;
                          -750,750,750;
                          -750,-750,750;
@@ -507,9 +507,8 @@ classdef inputFig < handle
             self.textBox.String = inputString;
             R=self.robotKin.getRot(6);
             P = self.robotKin.getPos(6);
-            scale =1;
+            scale =100;
             textMoves = self.fontRender.sequentializeText(upper(inputString),scale,[R(:,1),R(:,2)],P);
-            disp(textMoves)
             self.alphabetInterpol(textMoves);
         end
         
@@ -520,36 +519,43 @@ classdef inputFig < handle
              ax  = R(:,3);
              qmotion =[];
              for ii = 2:size(Poslist,3)
-                if Poslist(3,1,ii) ==0
-                   CartInterpol = cartLineEqual(Poslist(1,:,ii)',Poslist(2,:,ii)',...
+                if Poslist(3,1,ii) == 0
+                    CartInterpol = cartLineEqual(Poslist(1,:,ii)',Poslist(2,:,ii)',...
                                                 self.t_step,self.vAlphabet);
-                   for jj = 1:size(CartInterpol)
-                       q = self.robotKin.inverseKinematics(CartInterpol(:,jj), R, self.configSelect.Value);
-                    if isempty(q) % if qNext is empty, move is not possible
-                        CartInterpol(:,jj)
-                        errordlg('Desired location not possible - Line error', 'Error', 'modal')
-                        return
+                    for jj = 1:size(CartInterpol, 2)
+                        q = self.robotKin.inverseKinematics(CartInterpol(:,jj), R, self.configSelect.Value);
+                        if isempty(q) % if qNext is empty, move is not possible
+                            CartInterpol(:,jj)
+                            errordlg('Desired location not possible - Line error', 'Error', 'modal')
+                            return
+                        end
+                        qmotion = [qmotion;q];
                     end
-                       qmotion = [qmotion;q];
-                   end
                    
                 else
-                   CartInterpol = cartCircEqual(Poslist(1,:,ii)',Poslist(2,:,ii)',...
+                    CartInterpol = cartCircEqual(Poslist(1,:,ii)',Poslist(2,:,ii)',...
                                                 Poslist(4,:,ii)',ax,Poslist(3,1,ii)',...
-                                                self.t_step,self.vAlphabet); 
-                                            
-                   for jj = 1:size(CartInterpol)
-                       q = self.robotKin.inverseKinematics(CartInterpol(jj,:), R, self.configSelect.Value);
-                    if isempty(q) % if qNext is empty, move is not possible
-                        disp(CartInterpol(jj,:))
-                        errordlg('Desired location not possible - Circ error', 'Error', 'modal')
-                        return
+                                                self.t_step,self.vAlphabet);
+                    qTemp = zeros(1,2);
+                    for jj = 1:size(CartInterpol, 2)
+                        q = self.robotKin.inverseKinematics(CartInterpol(jj,:), R, self.configSelect.Value);
+                        if isempty(q) % if qNext is empty, move is not possible
+                            disp(CartInterpol(jj,:))
+                            errordlg('Desired location not possible - Circ error', 'Error', 'modal')
+                            return
+                        end
+                        qmotion = [qmotion;q];
                     end
-                       qmotion = [qmotion;q];
-                   end
                 end
-             end   
-            size(qmotion)
+                disp(ii/size(Poslist,3))
+            end
+            x = [];
+            for ii = 1:length(qmotion)
+            A = self.robotKin.forwardKinematics(qmotion(ii,:), 6);
+            x = [x, A(1:3, 4)];
+            end
+            figure(4)
+            plot3(x(1,:), x(2,:), x(3,:))
             self.n = 1;
             self.toggleInputs('off');
             self.qMatrix = qmotion;
