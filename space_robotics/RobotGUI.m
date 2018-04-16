@@ -1,5 +1,5 @@
 function RobotGUI()
-    %ROBOTGUI opens GUI for control & output of ARC Mate 120iC robot simulation
+    %% ROBOTGUI opens GUI for control & output of ARC Mate 120iC robot simulation
     
     % add paths to required .m files
     addpath('helper_functions')

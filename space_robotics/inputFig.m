@@ -1,6 +1,5 @@
 classdef inputFig < handle
-    % Stuff
-    %
+    
     properties (Constant)
         boxHeight = 0.05;
         boxWidth  = 0.07;
@@ -47,12 +46,18 @@ classdef inputFig < handle
         posSliderBox = gobjects(3,1);
         jointSlider = gobjects(6,1);
         jointSliderBox = gobjects(6,1);
+        textBox;
+        writeButton;
+        ps3Button;
         
         % Other objects
         robotKin;
         udps;
         outFigure;
         timerObj;
+        fontRender;
+        timerObjPs3;
+        rtoA;
         
         % listener objects for sliders
         jointListener
@@ -60,6 +65,7 @@ classdef inputFig < handle
     end
     
     methods
+        %% Constructor
         function self = inputFig(robotKin, udps, outFigure)
             self.robotKin = robotKin;
             self.udps = udps;
@@ -71,8 +77,22 @@ classdef inputFig < handle
                 'TimerFcn',             @self.timerCallback,...
                 'StopFcn',              @self.timerStopFunction...
                 );
+            self.fontRender = fontRender();
+            
+            
+            self.timerObjPs3 = timer(...
+                'ExecutionMode',        'fixedRate',...
+                'Period',               0.05,...
+                'TimerFcn',             @self.ps3Callback,...
+                'StopFcn',              @self.timerStopFunction...
+                );
+            % start and immediately pause simulink model used to get inputs
+            set_param('ps3Sim', 'SimulationCommand', 'start', 'SimulationCommand', 'pause')
+            % get runtime object for controller output block
+            self.rtoA = get_param('ps3Sim/locationOut', 'RuntimeObject');
         end
         
+        %% Create initial figure and uicontrol
         function createFigure(self)
             % close possible other instances of same figure
             hFigTemp = findobj(...
@@ -200,8 +220,9 @@ classdef inputFig < handle
                                      self.boxWidth,...
                                      self.boxHeight],...
                 'Callback',         @self.executeMove);
+            lastPos = self.goButton.Position;
             
-            %% Quadrant routine
+            %% Quadrant/Octant routine
             
             self.routineButton = uicontrol(...
                 'Parent',           self.fig,...
@@ -209,11 +230,50 @@ classdef inputFig < handle
                 'String',           'Quad-Routine',...
                 'Fontsize',         self.fontSize,...
                 'Units',            'normalized',...
-                'Position',         [lastPos(1)+lastPos(3)+9*self.horMargin,...
+                'Position',         [lastPos(1)+lastPos(3)+self.horMargin,...
                                      1-4*self.boxHeight-3*self.verMargin,...
                                      3.5*self.boxWidth,...
                                      3.5*self.boxHeight],...
                 'Callback',         @self.routineMove);
+            lastPos = self.routineButton.Position;
+            
+            %% Text input for writing with arm
+            self.textBox = uicontrol(...
+                    'Parent',           self.fig,...
+                    'Style',            'edit',...
+                    'String',           'hello world',...
+                    'Fontsize',         self.fontSize,...
+                    'Units',            'normalized',...
+                    'Position',         [lastPos(1)+lastPos(3)+self.horMargin,...
+                                         1-3*self.boxHeight-3*self.verMargin,...
+                                         3.5*self.boxWidth,...
+                                         2.5*self.boxHeight]);
+            self.writeButton = uicontrol(...
+                    'Parent',           self.fig,...
+                    'Style',            'pushbutton',...
+                    'String',           'write',...
+                    'Fontsize',         self.fontSize,...
+                    'Units',            'normalized',...
+                    'Position',         [lastPos(1)+lastPos(3)+self.horMargin,...
+                                         1-4*self.boxHeight-3*self.verMargin,...
+                                         3.5*self.boxWidth,...
+                                         self.boxHeight],...
+                    'Callback',         @self.writeText);
+                
+                
+            %% PS3 input enable button
+            
+            self.ps3Button = uicontrol(...
+                    'Parent',           self.fig,...
+                    'Style',            'pushbutton',...
+                    'String',           'Start PS3',...
+                    'Fontsize',         self.fontSize,...
+                    'Units',            'normalized',...
+                    'Position',         [lastPos(1)+lastPos(3)+self.horMargin,...
+                                         1-7*self.boxHeight-3*self.verMargin,...
+                                         3.5*self.boxWidth,...
+                                         self.boxHeight],...
+                    'Callback',         @self.ps3Start);
             
             %% Cartesian position sliders + number boxes
                 
@@ -328,6 +388,7 @@ classdef inputFig < handle
             end
         end
         
+        
         %% Callback from routine-button
         function routineMove(self, ~, ~)
             points = self.PointSequence;
@@ -349,17 +410,15 @@ classdef inputFig < handle
                 return
             end
             self.n = 1;
-            self.goButton.Enable = 'off';
-            self.routineButton.Enable = 'off';
-            [self.jointSlider.Enable] = deal('off');
-            [self.posSlider.Enable] = deal('off');
-            
+            self.toggleInputs('off');
             self.outFigure.updatePlots(Qplan,vq,aq,tarray)
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
             start(self.timerObj);
         end
+        
+        
         %% Move through given points and orientations
         function moveThroughLocs(self, Plist, Clist)
             if size(Clist,1) ==1
@@ -385,10 +444,7 @@ classdef inputFig < handle
                 return
             end
             self.n = 1;
-            self.goButton.Enable = 'off';
-            self.routineButton.Enable = 'off';
-            [self.jointSlider.Enable] = deal('off');
-            [self.posSlider.Enable] = deal('off');
+            self.toggleInputs('off')
             % Animate
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
@@ -397,6 +453,8 @@ classdef inputFig < handle
             % Plot
             self.outFigure.updatePlots(Qplan,vq,aq,tarray)
         end
+        
+        
         %% Move to new location
         function moveToLoc(self, P, C)
             qNext = self.robotKin.inverseKinematics(P, C, self.configSelect.Value);
@@ -405,10 +463,7 @@ classdef inputFig < handle
                 return
             end
             self.n = 1;
-            self.goButton.Enable = 'off';
-            self.routineButton.Enable = 'off';
-            [self.jointSlider.Enable] = deal('off');
-            [self.posSlider.Enable] = deal('off');
+            self.toggleInputs('off');
             [Qplan,vq,aq,tarray] = path_planning(5,self.t_step,[self.robotKin.q;
                                            qNext], ...
                                           [self.robotKin.qdotMax;
@@ -422,15 +477,13 @@ classdef inputFig < handle
             start(self.timerObj);
         end
         
+        
         %% Move to neutral state function
         function moveToNeutralState(self)
             stop(self.timerObj);
             qNext = [0,0,0,0,0,0];           
             self.n = 1;
-            self.goButton.Enable = 'off';
-            self.routineButton.Enable = 'off';
-            [self.jointSlider.Enable] = deal('off');
-            [self.posSlider.Enable] = deal('off');
+            self.toggleInputs('off');
             [Qplan,~,~,~] = path_planning(2,self.t_step,[self.robotKin.q;
                                            qNext], ...
                                           [self.robotKin.qdotMax;
@@ -442,6 +495,23 @@ classdef inputFig < handle
             % start timer/animation
             start(self.timerObj);
         end
+        
+        
+        %% write user specified text in 3D space, using Museum of Arts and Design (MAD) font
+        function writeText(self, ~, ~)
+            inputString = self.textBox.String;
+            % sanitize input, only allow alphabetic characters and spaces
+            stringMatch = regexp(inputString, '[a-z ]*', 'ignorecase', 'match');
+            inputString = strcat(stringMatch{:});
+            % show sanitized input 
+            self.textBox.String = inputString;
+            textMoves = self.fontRender.sequentializeText(upper(inputString));
+            disp(textMoves)
+            % TODO: translate linear and circular consecutive paths to
+            % jointspace and total path, execute move animation
+        end
+        
+        
         %% Alphabet Interpolation
          function alphabetInterpol(self, Poslist)
              R = self.robotKin.getRot(6); %axis normal to plane to write in
@@ -476,6 +546,8 @@ classdef inputFig < handle
                 end
              end   
          end
+
+
         %% slider listener for semi-continuous updating of current value
         function updateSliderValue(self, ~, eventdata, hValBox, type)
             hValBox.String = sprintf('%.2f', eventdata.AffectedObject.Value);
@@ -494,6 +566,7 @@ classdef inputFig < handle
             end
             self.updateQ(qNext);
         end
+        
         
         %% slider callback, called when releasing slider,
         % updates the other inputs to reflect the current position
@@ -520,13 +593,13 @@ classdef inputFig < handle
         end
         
         
-        
         %% Update joint parameters & send to outputs
         function updateQ(self, qNext)
             self.udps(qNext);
             self.robotKin.updateParams(qNext);
             self.outFigure.updatePos(self.robotKin.getPos(6));
         end
+        
         
         %% Timer callback - animate movement
         function timerCallback(self, ~, ~)
@@ -539,18 +612,17 @@ classdef inputFig < handle
             self.n = self.n + 1;
             % send to spanviewer and output figure
             self.udps(qNext);
-            self.updateQ(qNext);
+            ANext = self.robotKin.forwardKinematics(qNext, 6);
+            self.outFigure.updatePos(ANext(1:3,4));
         end
+        
         
         %% Timer stop function, for ending move
         function timerStopFunction(self, ~, ~)
             % update robot class
             qNext = self.qMatrix(self.n-1, :);
             self.robotKin.updateParams(qNext);
-            self.goButton.Enable = 'on';
-            self.routineButton.Enable = 'on';
-            [self.jointSlider.Enable] = deal('on');
-            [self.posSlider.Enable] = deal('on');
+            self.toggleInputs('on');
             % update sliders to new position
             [self.jointListener.Enabled, self.posListener.Enabled] = deal(false);
             qValues = num2cell(self.robotKin.q*180/pi);
@@ -563,6 +635,47 @@ classdef inputFig < handle
             [self.posInput.String] = posValues{:};
             [self.posSliderBox.String] = posValues{:};
             [self.jointListener.Enabled, self.posListener.Enabled] = deal(true);
+        end
+        
+        
+        %% PS3 controller input callbacks
+        function ps3Callback(self,~, ~)
+            set_param('ps3Sim', 'SimulationCommand', 'continue', 'SimulationCommand', 'pause')
+            angles = [self.rtoA.OutputPort(1).data(4:5)', 0];
+            C = rotMat(angles(1), 'z')*rotMat(angles(2), 'y')*rotMat(angles(3), 'x');
+            qNext = self.robotKin.inverseKinematics(self.rtoA.OutputPort(1).data(1:3), C, self.configSelect.Value);
+            if isempty(qNext)
+                self.ps3Pause(0,0);
+                errordlg('Desired location not possible', 'Error', 'modal')
+                return
+            end
+            self.qMatrix = qNext;
+            self.udps(self.qMatrix);
+            ANext = self.robotKin.forwardKinematics(self.qMatrix, 6);
+            self.outFigure.updatePos(ANext(1:3,4));
+        end
+        
+        function ps3Start(self, ~, ~)
+            self.toggleInputs('off')
+            self.ps3Button.String = 'Pause PS3 input';
+            self.ps3Button.Callback = @self.ps3Pause;
+            start(self.timerObjPs3);
+        end
+        
+        function ps3Pause(self, ~, ~)
+            self.n = 2;
+            stop(self.timerObjPs3);
+            self.ps3Button.String = 'Start PS3 input';
+            self.ps3Button.Callback = @self.ps3Start;
+        end
+        
+        %% toggle input button enable (during moves), state must be 'on'/'off'
+        function toggleInputs(self, state)
+            self.goButton.Enable = state;
+            self.routineButton.Enable = state;
+            self.writeButton.Enable = state;
+            [self.jointSlider.Enable] = deal(state);
+            [self.posSlider.Enable] = deal(state);
         end
     end
 end
