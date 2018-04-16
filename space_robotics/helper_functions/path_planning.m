@@ -36,7 +36,7 @@ if size(qstates,1) ==2
 
             alpha =vmax^2/(vmax*tm+qstates(1,ii)-qstates(2,ii));
             tb = (vmax*tm-(qstates(2,ii)-qstates(1,ii)))/vmax;
-            tbindex = floor(tb/dt);
+            tbindex = round(tb/dt);
             tbround = tbindex*dt;
             q(1:tbindex,ii) = qstates(1,ii)+0.5*alpha*tarray(1:tbindex).^2;
             vq(1:tbindex,ii) = alpha*tarray(1:tbindex);
