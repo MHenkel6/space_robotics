@@ -1,4 +1,4 @@
-function [ X,vX,aX,tarray ] = cartesian_circ( Pstart,Pend,Rstart,Rend,Pcenter,Rotaxis,righthanded,t ,dt, vp )
+function [ X,vX,aX,tarray ] = cartesian_circ( Pstart,Pend,Pcenter,Rotaxis,righthanded,t ,dt, vp )
 % Interpolate a circular arc path in cartesian space based on initial and end position  
 %  [x,y,z] and orientation angles [theta,phi,psi], rotation center and
 %  axis, and rotation direction
@@ -10,9 +10,9 @@ function [ X,vX,aX,tarray ] = cartesian_circ( Pstart,Pend,Rstart,Rend,Pcenter,Ro
 motion_possible = true;
 
 tarray = 0:dt:t;
-X = zeros(size(tarray,2),6);
-vX = zeros(size(tarray,2),6);
-aX = zeros(size(tarray,2),6);
+X = zeros(size(tarray,2),3);
+vX = zeros(size(tarray,2),3);
+aX = zeros(size(tarray,2),3);
 
 %path variable s
 spsi = zeros(size(tarray,2),1);
@@ -75,8 +75,15 @@ if motion_possible
     aspsi(end-tbindex+1:end) = -alphapsi;
 %% From path variable, give positions in Cartesian space
     Pprime = [radius * cos(spsi),radius * sin(spsi),zeros(size(spsi,1),1)]; % position in O frame
+    Pprimedot = [-radius * sin(spsi),radius * cos(spsi),zeros(size(spsi,1),1)]; 
     for ii = 1:1:size(X,1)
+        %% TESTOUTPUTS
+        size(R')
+        size(Pprime(ii,:)')
+        
         X(ii,1:3) = Pcenter + R' * Pprime(ii,:)'; % Position in World frame:
+        vX(ii,1:3) = R'*(Pprimedot(ii,:)'*vspsi(ii)); %Derivative of X (chain rule)
+        aX(ii,1:3) = R'*(Pprimedot(ii,:)'*aspsi(ii)-Pprime(ii,:)'*vspsi(ii)^2); %Derivative of vX, chain and 
     end
 end
 end
