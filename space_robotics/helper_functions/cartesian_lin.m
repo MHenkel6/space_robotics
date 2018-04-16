@@ -1,4 +1,4 @@
-function [ X,vX,aX, tarray, motion_possible ] = cartesian_lin( Pstart,Pend,Rstart,Rend,t ,dt, vp, vomega, )
+function [ X, vX, aX, tarray, motion_possible ] = cartesian_lin( Pstart, Pend, Rstart, Rend, t, dt, vp, vomega)
 % Interpolate a linear path in cartesian space based on initial and end position  
 %  [x,y,z] and orientation angles [theta,phi,psi]
 % Output:
