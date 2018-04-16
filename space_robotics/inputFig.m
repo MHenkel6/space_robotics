@@ -505,10 +505,12 @@ classdef inputFig < handle
             inputString = strcat(stringMatch{:});
             % show sanitized input 
             self.textBox.String = inputString;
-            textMoves = self.fontRender.sequentializeText(upper(inputString));
+            R=self.robotKin.getRot(6);
+            P = self.robotKin.getPos(6);
+            scale =1;
+            textMoves = self.fontRender.sequentializeText(upper(inputString),scale,[R(:,1),R(:,2)],P);
             disp(textMoves)
-            % TODO: translate linear and circular consecutive paths to
-            % jointspace and total path, execute move animation
+            self.alphabetInterpol(textMoves);
         end
         
         
@@ -517,34 +519,43 @@ classdef inputFig < handle
              R = self.robotKin.getRot(6); %axis normal to plane to write in
              ax  = R(:,3);
              qmotion =[];
-             for ii = 1:size(Poslist,3)
+             for ii = 2:size(Poslist,3)
                 if Poslist(3,1,ii) ==0
-                   CartInterpol = cartLineEqual(Poslist(1,:,ii),Poslist(2,:,ii),...
+                   CartInterpol = cartLineEqual(Poslist(1,:,ii)',Poslist(2,:,ii)',...
                                                 self.t_step,self.vAlphabet);
                    for jj = 1:size(CartInterpol)
-                       q = self.robotKin.inverseKinematics(CartInterpol(jj,:), C, self.configSelect.Value);
-                    if isempty(qNext) % if qNext is empty, move is not possible
-                        errordlg('Desired location not possible', 'Error', 'modal')
+                       q = self.robotKin.inverseKinematics(CartInterpol(:,jj), R, self.configSelect.Value);
+                    if isempty(q) % if qNext is empty, move is not possible
+                        CartInterpol(:,jj)
+                        errordlg('Desired location not possible - Line error', 'Error', 'modal')
                         return
                     end
-                       qmotion = [qmotion,q];
+                       qmotion = [qmotion;q];
                    end
                    
                 else
-                   CartInterpol = cartCircEqual(Poslist(1,:,ii),Poslist(2,:,ii),...
-                                                Poslist(4,:,ii),R,Poslist(3,1,ii),...
+                   CartInterpol = cartCircEqual(Poslist(1,:,ii)',Poslist(2,:,ii)',...
+                                                Poslist(4,:,ii)',ax,Poslist(3,1,ii)',...
                                                 self.t_step,self.vAlphabet); 
                                             
                    for jj = 1:size(CartInterpol)
-                       q = self.robotKin.inverseKinematics(CartInterpol(jj,:), C, self.configSelect.Value);
-                    if isempty(qNext) % if qNext is empty, move is not possible
-                        errordlg('Desired location not possible', 'Error', 'modal')
+                       q = self.robotKin.inverseKinematics(CartInterpol(jj,:), R, self.configSelect.Value);
+                    if isempty(q) % if qNext is empty, move is not possible
+                        disp(CartInterpol(jj,:))
+                        errordlg('Desired location not possible - Circ error', 'Error', 'modal')
                         return
                     end
-                       qmotion = [qmotion,q];
+                       qmotion = [qmotion;q];
                    end
                 end
              end   
+            size(qmotion)
+            self.n = 1;
+            self.toggleInputs('off');
+            self.qMatrix = qmotion;
+            [self.nMax, ~] = size(self.qMatrix);
+            % start timer/animation
+            start(self.timerObj);
          end
 
 

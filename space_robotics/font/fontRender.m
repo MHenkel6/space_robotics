@@ -30,10 +30,10 @@ classdef fontRender < handle
         end
         
         %% create 4x3xN moves matrix for a character array/string
-        function movements = sequentializeText(self, stringIn)
-            plane = [[1;0;0], [0;1;0]];
-            origin = [0;0;0];
-            size = 1.0;
+        function movements = sequentializeText(self, stringIn,scaleIn,planeIn,originIn)
+            plane = planeIn; %first x then y
+            origin = originIn;
+            size = scaleIn;
             movements = [];
             lastEndPoint = origin';
             for character = stringIn
