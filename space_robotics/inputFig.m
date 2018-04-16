@@ -397,7 +397,7 @@ classdef inputFig < handle
                 P = points(ii,:)';
                 R = rotMat(rotations(ii,1), 'z') * rotMat(rotations(ii,2), 'y') * rotMat(rotations(ii,3), 'x');
                 qMotion(ii+1,:) = self.robotKin.inverseKinematics(P, R, self.configSelect.Value);
-                disp(P)            end
+            end
             % Pass states to planning
             [Qplan,vq,aq,tarray] = path_planning(5,self.t_step,[self.robotKin.q;
                                            qMotion], ...
@@ -408,11 +408,7 @@ classdef inputFig < handle
                 return
             end
             self.n = 1;
-            self.goButton.Enable = 'off';
-            self.routineButton.Enable = 'off';
-            [self.jointSlider.Enable] = deal('off');
-            [self.posSlider.Enable] = deal('off');
-            
+            self.toggleInputs('off');
             self.outFigure.updatePlots(Qplan,vq,aq,tarray)
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
@@ -445,10 +441,7 @@ classdef inputFig < handle
                 errordlg('Desired path not possible - blend times too large', 'Error', 'modal')
             end
             self.n = 1;
-            self.goButton.Enable = 'off';
-            self.routineButton.Enable = 'off';
-            [self.jointSlider.Enable] = deal('off');
-            [self.posSlider.Enable] = deal('off');
+            self.toggleInputs('off')
             % Animate
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
