@@ -443,7 +443,12 @@ classdef inputFig < handle
             % start timer/animation
             start(self.timerObj);
         end
-        
+        %% Alphabet Interpolation
+%         function alphabetInterpol(self, Poslist)
+%             for ii = 1:size(Poslist,3)
+%                 if Poslist(3,1,ii) ==0
+%                     [CartInterpol,~,~,~] = cartesian_lin
+%         end
         %% slider listener for semi-continuous updating of current value
         function updateSliderValue(self, ~, eventdata, hValBox, type)
             hValBox.String = sprintf('%.2f', eventdata.AffectedObject.Value);
