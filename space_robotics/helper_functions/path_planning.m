@@ -1,4 +1,4 @@
-function [ q,vq,aq, t ] = path_planning(tm, dt,qstates,constraints )
+function [ q,vq,aq, t ,msg] = path_planning(tm, dt,qstates,constraints )
 %Given a time, the Denavit-Hartenberg parameter matrix, a set of Points P
 %and a corresponding set of orientations R, the type of trajectory amd the 
 %constraints the function gives the trajectory (in configuration space) to 
@@ -54,7 +54,9 @@ if size(qstates,1) ==2
         end
             
     end
-else
+    
+else % Multiple points
+    
     if size(tm) >1
         td = tm; %Tm is the times for each of the  data points
     else
@@ -64,30 +66,53 @@ else
         alpha = constraints(2,ii);%maximum acceleration
         %Calculate velocities
         vec = (qstates(2:end,ii)-qstates(1:end-1,ii))./(td(2:end)-td(1:end-1));
+        
+            
         %Calculate blend times
         t1 = td(2)-sqrt(td(2)^2-2*abs((qstates(2,ii)-qstates(1,ii)))/alpha);
         tend =  (td(end)-td(end-1))-sqrt((td(end)-td(end-1))^2-2*abs(qstates(end,ii)-qstates(end-1,ii))/alpha);
         t1index= round(t1/dt);
+        if t1index <1
+            t1index = 1 ;
+        end
         tendindex =round(tend/dt);
+        if tendindex<1
+            tendindex =1;
+        end
         vec(1) = (qstates(2,ii)-qstates(1,ii))/(td(2)-0.5*t1);  %Fix start and end segment velocities
         vec(end) = (qstates(end,ii)-qstates(end-1,ii))/(td(2)-0.5*tend);
         tk = abs(vec(2:end)-vec(1:end-1))/alpha; %transition times
-
+        tblend_compile = [t1,tk',tend];
+        tDelta  = td(2:end)-td(1: end-1);
+        if max(abs(vec))>constraints(1,ii)
+            q = [];
+            vq= [];
+            aq= [];
+            t = [];
+            return
+        elseif  any(((tblend_compile(1:end-1) + tblendcompile(2:end))>tDelta))
+            q = [];
+            vq= [];
+            aq= [];
+            t = [];
+            return
+        end
         %Calculate position as function of time
         for jj = 1:1:2*size(qstates,1)-1 %loop over every point (qstates size) and every transition (qstates-1)
             if jj== 1% Beginnning 
-                q(1:t1index,ii) =qstates(1,ii)+0.5*alpha*sign(vec(1))*tarray(1:t1index).^2;
+                q(1:t1index,ii) =qstates(1,ii) + 0.5*alpha*sign(vec(1))*tarray(1:t1index).^2;
                 vq(1:t1index,ii) = alpha*sign(vec(1))*tarray(1:t1index);
                 aq(1:t1index,ii) = alpha*sign(vec(1));
-            elseif jj==2*size(qstates,1)-1 %End
+            elseif jj==2*size(qstates,1)-1 %
                 q(end-tendindex+1:end,ii) =q(end-tendindex,ii)+vq(end-tendindex,ii)*(tarray(end-tendindex+1:end)-tarray(end-tendindex))+0.5*alpha*sign(-vec(end))*(tarray(end-tendindex+1:end)-tarray(end-tendindex)).^2;
                 vq(end-tendindex+1:end,ii) = vq(end-tendindex,ii)+alpha*sign(-vec(end))*(tarray(end-tendindex+1:end)-tarray(end-tendindex));
                 aq(end-tendindex+1:end,ii) = alpha*sign(-vec(end));
             elseif mod(jj,2)==1 %Uneven integers are parabolic blending times
                 %Indices are relevant time for datapoint - and + half the
                 %transition time
-                startindex = round((td((jj+1)/2)-tk((jj-1)/2)/2)/dt)+1;
-                endindex =   round((td((jj+1)/2)+tk((jj-1)/2)/2)/dt);
+                
+                startindex = round((td((jj+1)/2) - tk((jj-1)/2)/2)/dt)+1;
+                endindex =   round((td((jj+1)/2) + tk((jj-1)/2)/2)/dt);
                 q(startindex:endindex,ii) =q(startindex-1,ii)+vec((jj-1)/2)*(tarray(startindex:endindex)-tarray(startindex-1))+0.5*alpha*sign(vec((jj+1)/2)-vec((jj-1)/2))*(tarray(startindex:endindex)-tarray(startindex-1)).^2;
                 vq(startindex:endindex,ii) =vec((jj-1)/2)+alpha*sign(vec((jj+1)/2)-vec((jj-1)/2))*(tarray(startindex:endindex)-tarray(startindex-1));
                 aq(startindex:endindex,ii) = alpha*sign(vec((jj+1)/2)-vec((jj-1)/2));
@@ -110,7 +135,6 @@ else
         end
     end
 end
-t= tarray;
 
 end
 

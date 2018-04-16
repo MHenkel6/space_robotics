@@ -17,14 +17,7 @@ classdef inputFig < handle
                          -500,500,-500;
                          -500,-500,-500;
                          500,-500,-500;];
-        RotationSequence = [0,0,0;
-                           -500,500,500;
-                           -500,-500,500;
-                           500,-500,500;
-                           500,500,-500;
-                           -500,500,-500;
-                           -500,-500,-500;
-                           500,-500,-500;];
+        RotationSequence = zeros(8,3);
         
         posMinMax = [-2000 2000;...
                      -2000 2000;...
@@ -335,29 +328,38 @@ classdef inputFig < handle
         
         %% Callback from routine-button
         function routineMove(self, ~, ~)
-            self.moveToNeutralState();
+            
+            
             points = self.PointSequence;
             rotations = self.RotationSequence;
             % Perform inverse kinematics
-            qMotion = zeros(6,6);
+            qMotion = zeros(10,6);
             for ii= 1:1:size(points,1)
-                P = points(ii,:);
+                P = points(ii,:)';
                 R = rotMat(rotations(ii,1), 'z') * rotMat(rotations(ii,2), 'y') * rotMat(rotations(ii,3), 'x');
-                qMotion(ii,:) = self.robotKin.inverseKinematics(P, R, self.configSelect.Value);
+                qMotion(ii+1,:) = self.robotKin.inverseKinematics(P, R, self.configSelect.Value);
                 
             end
             % Pass states to planning
-            [Qplan,vq,aq,tarray] = path_planning(40,self.t_step,[self.robotKin.q;
+            [Qplan,vq,aq,tarray] = path_planning(5,self.t_step,[self.robotKin.q;
                                            qMotion], ...
                                           [self.robotKin.qdotMax;
-                                           0.3*self.robotKin.qdotMax]);
+                                           0.5*self.robotKin.qdotMax]);
+            if isempty(Qplan)
+                errordlg('Desired path not possible - blend times too large', 'Error', 'modal')
+                return
+            end
+            self.n = 1;
+            self.goButton.Enable = 'off';
+            self.routineButton.Enable = 'off';
+            [self.jointSlider.Enable] = deal('off');
+            [self.posSlider.Enable] = deal('off');
+            
             self.outFigure.updatePlots(Qplan,vq,aq,tarray)
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
             start(self.timerObj);
-            % return to neutral state
-            self.moveToNeutralState();
         end
         %% Move through given points and orientations
         function moveThroughLocs(self, Plist, Clist)
@@ -379,6 +381,15 @@ classdef inputFig < handle
             [Qplan,vq,aq,tarray] = path_planning(5,self.t_step,qMotion, ...
                                           [self.robotKin.qdotMax;
                                            0.3*self.robotKin.qdotMax]);
+            if isempty(Qplan)
+                return
+                errordlg('Desired path not possible - blend times too large', 'Error', 'modal')
+            end
+            self.n = 1;
+            self.goButton.Enable = 'off';
+            self.routineButton.Enable = 'off';
+            [self.jointSlider.Enable] = deal('off');
+            [self.posSlider.Enable] = deal('off');
             % Animate
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
