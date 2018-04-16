@@ -516,7 +516,7 @@ classdef inputFig < handle
         %% Alphabet Interpolation
          function alphabetInterpol(self, Poslist)
              R = self.robotKin.getRot(6); %axis normal to plane to write in
-             ax  = R(:,3);
+             ax  = -R(:,3);
              qmotion =[];
              for ii = 2:size(Poslist,3)
                 if Poslist(3,1,ii) == 0
@@ -538,7 +538,7 @@ classdef inputFig < handle
                                                 self.t_step,self.vAlphabet);
                     qTemp = zeros(1,2);
                     for jj = 1:size(CartInterpol, 2)
-                        q = self.robotKin.inverseKinematics(CartInterpol(jj,:), R, self.configSelect.Value);
+                        q = self.robotKin.inverseKinematics(CartInterpol(:,jj), R, self.configSelect.Value);
                         if isempty(q) % if qNext is empty, move is not possible
                             disp(CartInterpol(jj,:))
                             errordlg('Desired location not possible - Circ error', 'Error', 'modal')
