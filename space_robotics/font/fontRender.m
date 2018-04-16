@@ -31,8 +31,6 @@ classdef fontRender < handle
         
         %% create 4x3xN moves matrix for a character array/string
         function movements = sequentializeText(self, stringIn)
-            stringMatch = regexp(stringIn, '[a-z ]*', 'ignorecase', 'match');
-            stringIn = upper(strcat(stringMatch{:}));
             plane = [[1;0;0], [0;1;0]];
             origin = [0;0;0];
             size = 1.0;

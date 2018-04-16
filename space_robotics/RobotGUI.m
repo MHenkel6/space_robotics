@@ -3,6 +3,7 @@ function RobotGUI()
     
     % add paths to required .m files
     addpath('helper_functions')
+    addpath('font')
     
     % set up DH parameters
     a = zeros(1,6);
@@ -29,5 +30,5 @@ function RobotGUI()
     inFigure.createFigure;
         
     % Open up spanviewer
-     winopen('spanviewer_files\ARCMate120iC.span');
+%      winopen('spanviewer_files\ARCMate120iC.span');
 end

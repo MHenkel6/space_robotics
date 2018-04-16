@@ -52,12 +52,15 @@ classdef inputFig < handle
         posSliderBox = gobjects(3,1);
         jointSlider = gobjects(6,1);
         jointSliderBox = gobjects(6,1);
+        textBox;
+        writeButton;
         
         % Other objects
         robotKin;
         udps;
         outFigure;
         timerObj;
+        fontRender;
         
         % listener objects for sliders
         jointListener
@@ -76,6 +79,7 @@ classdef inputFig < handle
                 'TimerFcn',             @self.timerCallback,...
                 'StopFcn',              @self.timerStopFunction...
                 );
+            self.fontRender = fontRender();
         end
         
         function createFigure(self)
@@ -205,8 +209,9 @@ classdef inputFig < handle
                                      self.boxWidth,...
                                      self.boxHeight],...
                 'Callback',         @self.executeMove);
+            lastPos = self.goButton.Position;
             
-            %% Quadrant routine
+            %% Quadrant/Octant routine
             
             self.routineButton = uicontrol(...
                 'Parent',           self.fig,...
@@ -214,11 +219,36 @@ classdef inputFig < handle
                 'String',           'Quad-Routine',...
                 'Fontsize',         self.fontSize,...
                 'Units',            'normalized',...
-                'Position',         [lastPos(1)+lastPos(3)+9*self.horMargin,...
+                'Position',         [lastPos(1)+lastPos(3)+self.horMargin,...
                                      1-4*self.boxHeight-3*self.verMargin,...
                                      3.5*self.boxWidth,...
                                      3.5*self.boxHeight],...
                 'Callback',         @self.routineMove);
+            lastPos = self.routineButton.Position;
+            
+            %% Text input for writing with arm
+            self.textBox = uicontrol(...
+                    'Parent',           self.fig,...
+                    'Style',            'edit',...
+                    'String',           'hello world',...
+                    'Fontsize',         self.fontSize,...
+                    'Units',            'normalized',...
+                    'Position',         [lastPos(1)+lastPos(3)+self.horMargin,...
+                                         1-3*self.boxHeight-3*self.verMargin,...
+                                         3.5*self.boxWidth,...
+                                         2.5*self.boxHeight]);
+                                     
+            self.writeButton = uicontrol(...
+                    'Parent',           self.fig,...
+                    'Style',            'pushbutton',...
+                    'String',           'write',...
+                    'Fontsize',         self.fontSize,...
+                    'Units',            'normalized',...
+                    'Position',         [lastPos(1)+lastPos(3)+self.horMargin,...
+                                         1-4*self.boxHeight-3*self.verMargin,...
+                                         3.5*self.boxWidth,...
+                                         self.boxHeight],...
+                    'Callback',         @self.writeText);
             
             %% Cartesian position sliders + number boxes
                 
@@ -341,14 +371,14 @@ classdef inputFig < handle
             % Perform inverse kinematics
             qMotion = zeros(6,6);
             for ii= 1:1:size(points,1)
-                P = points(ii,:);
+                P = points(ii,:)';
                 R = rotMat(rotations(ii,1), 'z') * rotMat(rotations(ii,2), 'y') * rotMat(rotations(ii,3), 'x');
                 qMotion(ii,:) = self.robotKin.inverseKinematics(P, R, self.configSelect.Value);
-                
+                disp(P)
             end
             % Pass states to planning
-            [Qplan,vq,aq,tarray] = path_planning(40,self.t_step,[self.robotKin.q;
-                                           qMotion], ...
+            [Qplan,vq,aq,tarray] = path_planning(40,self.t_step,...
+                                          [self.robotKin.q; qMotion], ...
                                           [self.robotKin.qdotMax;
                                            0.3*self.robotKin.qdotMax]);
             self.outFigure.updatePlots(Qplan,vq,aq,tarray)
@@ -359,6 +389,7 @@ classdef inputFig < handle
             % return to neutral state
             self.moveToNeutralState();
         end
+        
         %% Move through given points and orientations
         function moveThroughLocs(self, Plist, Clist)
             if size(Clist,1) ==1
@@ -387,6 +418,7 @@ classdef inputFig < handle
             % Plot
             self.outFigure.updatePlots(Qplan,vq,aq,tarray)
         end
+        
         %% Move to new location
         function moveToLoc(self, P, C)
             qNext = self.robotKin.inverseKinematics(P, C, self.configSelect.Value);
@@ -421,7 +453,7 @@ classdef inputFig < handle
             self.routineButton.Enable = 'off';
             [self.jointSlider.Enable] = deal('off');
             [self.posSlider.Enable] = deal('off');
-            [Qplan,vq,aq,tarray] = path_planning(2,self.t_step,[self.robotKin.q;
+            [Qplan,~,~,~] = path_planning(2,self.t_step,[self.robotKin.q;
                                            qNext], ...
                                           [self.robotKin.qdotMax;
                                            0.3*self.robotKin.qdotMax]);
@@ -432,6 +464,20 @@ classdef inputFig < handle
             % start timer/animation
             start(self.timerObj);
         end
+        
+        %% write user specified text in 3D space, using Museum of Arts and Design (MAD) font
+        function writeText(self, ~, ~)
+            inputString = self.textBox.String;
+            % sanitize input, only allow alphabetic characters and spaces
+            stringMatch = regexp(inputString, '[a-z ]*', 'ignorecase', 'match');
+            inputString = strcat(stringMatch{:});
+            % show sanitized input 
+            self.textBox.String = inputString;
+            textMoves = self.fontRender.sequentializeText(upper(inputString));
+            % TODO: translate linear and circular consecutive paths to
+            % jointspace and total path, execute move animation
+        end
+        
         
         %% slider listener for semi-continuous updating of current value
         function updateSliderValue(self, ~, eventdata, hValBox, type)
