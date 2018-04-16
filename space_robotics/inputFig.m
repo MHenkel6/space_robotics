@@ -359,7 +359,34 @@ classdef inputFig < handle
             % return to neutral state
             self.moveToNeutralState();
         end
-        
+        %% Move through given points and orientations
+        function moveThroughLocs(self, Plist, Clist)
+            if size(Clist,1) ==1
+                Clist(1:size(Plist,1),:) = Clist(1,:);
+            end
+            qMotion = zeros(size(Plist,1)+1,6);
+            qMotion(1,:) = self.robotKin.q;
+            %Check if motion is possible 
+            for ii = 1:1:size(Plist,1)
+                qNext = self.robotKin.inverseKinematics(Plist(ii,:), Clist(ii,:), self.configSelect.Value);
+                if isempty(qNext) % if qNext is empty, move is not possible
+                    errordlg('Desired path not possible', 'Error', 'modal')
+                    return
+                end
+                qMotion(ii,:) = qNext;
+            end
+            % Plan the motion
+            [Qplan,vq,aq,tarray] = path_planning(5,self.t_step,qMotion, ...
+                                          [self.robotKin.qdotMax;
+                                           0.3*self.robotKin.qdotMax]);
+            % Animate
+            self.qMatrix = Qplan;
+            [self.nMax, ~] = size(self.qMatrix);
+            
+            start(self.timerObj);
+            % Plot
+            self.outFigure.updatePlots(Qplan,vq,aq,tarray)
+        end
         %% Move to new location
         function moveToLoc(self, P, C)
             qNext = self.robotKin.inverseKinematics(P, C, self.configSelect.Value);
@@ -387,6 +414,7 @@ classdef inputFig < handle
         
         %% Move to neutral state function
         function moveToNeutralState(self)
+            stop(self.timerObj);
             qNext = [0,0,0,0,0,0];           
             self.n = 1;
             self.goButton.Enable = 'off';
@@ -399,7 +427,6 @@ classdef inputFig < handle
                                            0.3*self.robotKin.qdotMax]);
             % TODO replace angular acceleration maxima with realistic
             % values
-            self.outFigure.updatePlots(Qplan,vq,aq,tarray)
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
