@@ -37,20 +37,12 @@ classdef fontRender < handle
             movements = [];
             lastEndPoint = origin';
             for character = stringIn
-                if character == ' '
-                    origin = origin + 1.1*plane(:,1)*size;
-                    originMove = [lastEndPoint ; origin'; 0,0,0; 0,0,0];
-                    if ~all(originMove(:) == 0)
-                        movements = cat(3, movements, originMove);
-                    end
+                nextLetter = self.sequentializeCharacter(character, plane, origin, size);
+                originMove = [lastEndPoint ; nextLetter(1,:,1); 0,0,0; 0,0,0];
+                if ~all(originMove(:) == 0)
+                    movements = cat(3, movements, originMove, nextLetter);
                 else
-                    nextLetter = self.sequentializeCharacter(character, plane, origin, size);
-                    originMove = [lastEndPoint ; nextLetter(1,:,1); 0,0,0; 0,0,0];
-                    if ~all(originMove(:) == 0)
-                        movements = cat(3, movements, originMove, nextLetter);
-                    else
-                        movements = cat(3, movements, nextLetter);
-                    end
+                    movements = cat(3, movements, nextLetter);
                 end
                 origin = origin + 1.1*plane(:,1)*size;
                 lastEndPoint = movements(2,:,end);

@@ -9,7 +9,7 @@ classdef inputFig < handle
         verMargin = 0.01;
         fontSize  = 12;
         t_step = 0.016;
-        vAlphabet = 10;
+        vAlphabet = 300;
         PointSequence = [750,750,750;
                          -750,750,750;
                          -750,-750,750;
@@ -517,48 +517,49 @@ classdef inputFig < handle
          function alphabetInterpol(self, Poslist)
              R = self.robotKin.getRot(6); %axis normal to plane to write in
              ax  = -R(:,3);
-             qmotion =[];
+             qMotion =[];
+             waitBarHandle = waitbar(0, 'calculating trajectory');
              for ii = 2:size(Poslist,3)
                 if Poslist(3,1,ii) == 0
                     CartInterpol = cartLineEqual(Poslist(1,:,ii)',Poslist(2,:,ii)',...
                                                 self.t_step,self.vAlphabet);
-                    for jj = 1:size(CartInterpol, 2)
+                    N = size(CartInterpol, 2);
+                    qTemp = zeros(N, 6);
+                    for jj = 1:N
                         q = self.robotKin.inverseKinematics(CartInterpol(:,jj), R, self.configSelect.Value);
                         if isempty(q) % if qNext is empty, move is not possible
-                            CartInterpol(:,jj)
+                            disp(CartInterpol(:,jj))
+                            close(waitBarHandle)
                             errordlg('Desired location not possible - Line error', 'Error', 'modal')
                             return
                         end
-                        qmotion = [qmotion;q];
+                        qTemp(jj,:) = q;
                     end
-                   
+                    qMotion = [qMotion; qTemp];
                 else
                     CartInterpol = cartCircEqual(Poslist(1,:,ii)',Poslist(2,:,ii)',...
                                                 Poslist(4,:,ii)',ax,Poslist(3,1,ii)',...
                                                 self.t_step,self.vAlphabet);
-                    qTemp = zeros(1,2);
+                    N = size(CartInterpol, 2);
+                    qTemp = zeros(N, 6);
                     for jj = 1:size(CartInterpol, 2)
                         q = self.robotKin.inverseKinematics(CartInterpol(:,jj), R, self.configSelect.Value);
                         if isempty(q) % if qNext is empty, move is not possible
                             disp(CartInterpol(jj,:))
+                            close(waitBarHandle)
                             errordlg('Desired location not possible - Circ error', 'Error', 'modal')
                             return
                         end
-                        qmotion = [qmotion;q];
+                        qTemp(jj,:) = q;
                     end
+                    qMotion = [qMotion; qTemp];
                 end
-                disp(ii/size(Poslist,3))
+                waitbar(ii/size(Poslist,3), waitBarHandle);
             end
-            x = [];
-            for ii = 1:length(qmotion)
-            A = self.robotKin.forwardKinematics(qmotion(ii,:), 6);
-            x = [x, A(1:3, 4)];
-            end
-            figure(4)
-            plot3(x(1,:), x(2,:), x(3,:))
+            close(waitBarHandle)
             self.n = 1;
             self.toggleInputs('off');
-            self.qMatrix = qmotion;
+            self.qMatrix = qMotion;
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
             start(self.timerObj);
