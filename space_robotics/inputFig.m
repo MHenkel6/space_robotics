@@ -1,5 +1,6 @@
 classdef inputFig < handle
-    
+    % Stuff
+    %
     properties (Constant)
         boxHeight = 0.05;
         boxWidth  = 0.07;
@@ -10,14 +11,14 @@ classdef inputFig < handle
         fontSize  = 12;
         t_step = 0.016;
         vAlphabet = 1;
-        PointSequence = [500,500,500;
-                         -500,500,500;
-                         -500,-500,500;
-                         500,-500,500;
-                         500,500,-500;
-                         -500,500,-500;
-                         -500,-500,-500;
-                         500,-500,-500;];
+        PointSequence = [750,750,750;
+                         -750,750,750;
+                         -750,-750,750;
+                         750,-750,750;
+                         750,750,-750;
+                         -750,750,-750;
+                         -750,-750,-750;
+                         750,-750,-750;];
         RotationSequence = zeros(8,3);
         
         posMinMax = [-2000 2000;...
@@ -337,10 +338,9 @@ classdef inputFig < handle
                 P = points(ii,:)';
                 R = rotMat(rotations(ii,1), 'z') * rotMat(rotations(ii,2), 'y') * rotMat(rotations(ii,3), 'x');
                 qMotion(ii+1,:) = self.robotKin.inverseKinematics(P, R, self.configSelect.Value);
-                
             end
             % Pass states to planning
-            [Qplan,vq,aq,tarray] = path_planning(5,self.t_step,[self.robotKin.q;
+            [Qplan,vq,aq,tarray] = path_planning(30,self.t_step,[self.robotKin.q;
                                            qMotion], ...
                                           [self.robotKin.qdotMax;
                                            0.5*self.robotKin.qdotMax]);
@@ -381,8 +381,8 @@ classdef inputFig < handle
                                           [self.robotKin.qdotMax;
                                            0.3*self.robotKin.qdotMax]);
             if isempty(Qplan)
+                    errordlg('Desired path not possible - blend times too large', 'Error', 'modal')
                 return
-                errordlg('Desired path not possible - blend times too large', 'Error', 'modal')
             end
             self.n = 1;
             self.goButton.Enable = 'off';
@@ -474,7 +474,7 @@ classdef inputFig < handle
                        qmotion = [qmotion,q];
                    end
                 end
-                
+             end   
          end
         %% slider listener for semi-continuous updating of current value
         function updateSliderValue(self, ~, eventdata, hValBox, type)

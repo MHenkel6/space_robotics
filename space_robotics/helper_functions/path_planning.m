@@ -1,4 +1,4 @@
-function [ q,vq,aq, t ,msg] = path_planning(tm, dt,qstates,constraints )
+function [ q,vq,aq, tarray] = path_planning(tm, dt,qstates,constraints )
 %Given a time, the Denavit-Hartenberg parameter matrix, a set of Points P
 %and a corresponding set of orientations R, the type of trajectory amd the 
 %constraints the function gives the trajectory (in configuration space) to 
@@ -90,7 +90,7 @@ else % Multiple points
             aq= [];
             t = [];
             return
-        elseif  any(((tblend_compile(1:end-1) + tblendcompile(2:end))>tDelta))
+        elseif  any(((tblend_compile(1:end-1) + tblend_compile(2:end))>tDelta))
             q = [];
             vq= [];
             aq= [];
@@ -135,7 +135,7 @@ else % Multiple points
         end
     end
 end
-
+t = tarray;
 end
 
 
