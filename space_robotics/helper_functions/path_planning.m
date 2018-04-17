@@ -1,6 +1,5 @@
-function [ q,vq,aq, tarray] = path_planning(tm, dt,qstates,constraints )
-%Given a time, the Denavit-Hartenberg parameter matrix, a set of Points P
-%and a corresponding set of orientations R, the type of trajectory amd the 
+function [ q,vq,aq, tarray] = path_planning(tm, dt,qstates,constraints,viaPoints )
+%Given a time, a set of states qstates,  amd the 
 %constraints the function gives the trajectory (in configuration space) to 
 %achieve the points in the order they are given
 %t_m = time to perform the maneuver from the first point to the last [s]
@@ -9,8 +8,13 @@ function [ q,vq,aq, tarray] = path_planning(tm, dt,qstates,constraints )
 %P = list of points in the required motion
 %R = list of orientations in required motion
 %qstate = initial configuration of joints
-%type = type of motion, 'Cubic', 'Quintic' or 'LSPB'
 % constraints = 2x6 set of constraints on velocities and accelerations
+
+ if ~exist('viaPoints','var')
+     % third parameter does not exist, so default it to something
+      viaPoints = false;
+ end
+
 
 % Compute fastest possible time for PTP motion
 if ( size(qstates,1) ==2)% If 0 is passed for time, make move as fast as possible;
@@ -19,10 +23,20 @@ if ( size(qstates,1) ==2)% If 0 is passed for time, make move as fast as possibl
         tm = tfastest;
     end
 end
+if viaPoints
+    qvia = zeros(2*size(qstates,1)-2,6);
+    qvia(1,:) = qstates(1,:);
+    qvia(end,:) = qstates(end,:);
+    qvia(2:end-1,:) = repelem(qstates(2:end-1,:),2,1);
+    %%%%%REMOVE THIS
+    tm = 2*tm;
+end
+
 %%Round tm to nearest multiple of dt
 tm(end) = round(tm(end)/dt)*dt;
 tarray = 0:dt:tm(end);
 q = zeros(size(tarray,2),6);
+
 vq = zeros(size(tarray,2),6);
 aq = zeros(size(tarray,2),6);
 %Always assumed that start and end velocity of path are at 0 velocity
@@ -66,11 +80,26 @@ else % Multiple points
         alpha = constraints(2,ii);%maximum acceleration
         %Calculate velocities
         vec = (qstates(2:end,ii)-qstates(1:end-1,ii))./(td(2:end)-td(1:end-1));
-        
+        tk = abs(vec(2:end)-vec(1:end-1))/alpha; %transition times
+        if viaPoints
+            qstates = zeros(2*size(qstates,1)-2,6);
+            qstates = qvia;
+            tdlarger = td(2:end-1)+0.8*tk;
+            tdsmaller = td(2:end-1)-0.8*tk;
+            tcomb = [tdsmaller';tdlarger'];
+            tcomb = tcomb(:)';
+            tvia = [td(1),tcomb,td(end)];
+            td = tvia;
+            vec = (qstates(2:end,ii)-qstates(1:end-1,ii))./(tvia(2:end)-tvia(1:end-1))';
+            vec(isnan(vec)) =0;    
+            tk = zeros(size(vec,1)-1,1);
+            tk = abs(vec(2:end,ii)-vec(1:end-1,ii))/alpha; %redefine transition times       
+        end
             
         %Calculate blend times
-        t1 = td(2)-sqrt(td(2)^2-2*abs((qstates(2,ii)-qstates(1,ii)))/alpha);
+        t1 = td(2)-sqrt(td(2)^2-2*abs((qstates(2,ii)-qstates(1,ii)))/alpha); %first and last transition times
         tend =  (td(end)-td(end-1))-sqrt((td(end)-td(end-1))^2-2*abs(qstates(end,ii)-qstates(end-1,ii))/alpha);
+        
         t1index= round(t1/dt);
         if t1index <1
             t1index = 1 ;
@@ -81,7 +110,7 @@ else % Multiple points
         end
         vec(1) = (qstates(2,ii)-qstates(1,ii))/(td(2)-0.5*t1);  %Fix start and end segment velocities
         vec(end) = (qstates(end,ii)-qstates(end-1,ii))/(td(2)-0.5*tend);
-        tk = abs(vec(2:end)-vec(1:end-1))/alpha; %transition times
+
         tblend_compile = [t1,tk',tend];
         tDelta  = td(2:end)-td(1: end-1);
         if max(abs(vec))>constraints(1,ii)
@@ -104,8 +133,8 @@ else % Multiple points
                 vq(1:t1index,ii) = alpha*sign(vec(1))*tarray(1:t1index);
                 aq(1:t1index,ii) = alpha*sign(vec(1));
             elseif jj==2*size(qstates,1)-1 %
-                q(end-tendindex+1:end,ii) =q(end-tendindex,ii)+vq(end-tendindex,ii)*(tarray(end-tendindex+1:end)-tarray(end-tendindex))+0.5*alpha*sign(-vec(end))*(tarray(end-tendindex+1:end)-tarray(end-tendindex)).^2;
-                vq(end-tendindex+1:end,ii) = vq(end-tendindex,ii)+alpha*sign(-vec(end))*(tarray(end-tendindex+1:end)-tarray(end-tendindex));
+                q(end-tendindex+1:end,ii) =qstates(end,ii)+0.5*alpha*sign(-vec(end))*(tm(end)-tarray(end-tendindex+1:end)).^2;
+                vq(end-tendindex+1:end,ii) = -alpha*sign(-vec(end))*(tm-tarray(end-tendindex+1:end));
                 aq(end-tendindex+1:end,ii) = alpha*sign(-vec(end));
             elseif mod(jj,2)==1 %Uneven integers are parabolic blending times
                 %Indices are relevant time for datapoint - and + half the
