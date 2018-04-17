@@ -9,7 +9,6 @@ classdef inputFig < handle
         verMargin = 0.01;
         fontSize  = 12;
         t_step = 0.016;
-        t_compute = 0.0040;
         vAlphabet = 300;
         PointSequence = [750,750,750;
                          -750,750,750;
@@ -402,10 +401,10 @@ classdef inputFig < handle
                 qMotion(ii+1,:) = self.robotKin.inverseKinematics(P, R, self.configSelect.Value);
             end
             % Pass states to planning
-            [Qplan,vq,aq,tarray] = path_planning(30,self.t_compute,[self.robotKin.q;
-                                           qMotion], ...
-                                          [self.robotKin.qdotMax;
-                                           0.5*self.robotKin.qdotMax]);
+            overSample = 16;
+            [Qplan,vq,aq,tarray] = path_planning(30,self.t_step/overSample, ...
+                                        [self.robotKin.q; qMotion], ...
+                                          [self.robotKin.qdotMax; 0.5*self.robotKin.qdotMax]);
             if isempty(Qplan)
                 errordlg('Desired path not possible - blend times too large', 'Error', 'modal')
                 return
@@ -413,7 +412,7 @@ classdef inputFig < handle
             self.n = 1;
             self.toggleInputs('off');
             self.outFigure.updatePlots(Qplan,vq,aq,tarray')
-            self.qMatrix = Qplan(1:4:end,:);
+            self.qMatrix = Qplan(1:overSample:end,:);
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
             start(self.timerObj);
