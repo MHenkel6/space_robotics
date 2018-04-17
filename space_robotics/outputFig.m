@@ -24,6 +24,7 @@ classdef outputFig < handle
         % graphics handles
         fig;                        % main figures
         axAngle = gobjects(3,1);    % axes objects for joint variables
+        plotAngle = gobjects(3,6);  % plot handles for joint variables
         axPos = gobjects(1,1);      % axes object for path plotting
         hPosOut = gobjects(3,1);    % uicontrol boxes for position output
         pathLine;                   % 3D line of path taken by end effector
@@ -69,14 +70,17 @@ classdef outputFig < handle
                     'Units',            'normalized',...
                     'FontSize',         8,...
                     'Position',         [self.aHOffset,...
-                                         1 - self.aVMargin - ii * aHeight - (ii - 1) * self.aVMargin,...
+                                         1 - 0.4*self.aVMargin - ii * aHeight - (ii - 1) * self.aVMargin,...
                                          aWidth,...
                                          aHeight] ...
                     );
                 ylabel(self.angleTitles{ii});
+                hold on
+                self.plotAngle(ii,:) = plot(self.axAngle(ii), 0, zeros(1,6));
+                hold off
             end
             xlabel('time [s]')
-            
+            linkaxes(self.axAngle, 'x');
             
             % create position plot figure
             self.fig(2) = figure(...
@@ -157,10 +161,12 @@ classdef outputFig < handle
                              vq,...
                              aq,...
                              t)
-                  
-            plot(self.axAngle(1),t,q);
-            plot(self.axAngle(2),t,vq);
-            plot(self.axAngle(3),t,aq);            
+            for ii = 1:size(q,2)
+                set(self.plotAngle(1,ii), 'XData', t, 'YData', q(:,ii));
+                set(self.plotAngle(2,ii), 'XData', t, 'YData', vq(:,ii));
+                set(self.plotAngle(3,ii), 'XData', t, 'YData', aq(:,ii));
+            end
+            [self.axAngle.XLim] = deal([t(1), t(end)]);
         end
     end
 end

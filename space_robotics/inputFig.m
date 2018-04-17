@@ -411,7 +411,7 @@ classdef inputFig < handle
             end
             self.n = 1;
             self.toggleInputs('off');
-            self.outFigure.updatePlots(Qplan,vq,aq,tarray)
+            self.outFigure.updatePlots(Qplan,vq,aq,tarray')
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
@@ -470,7 +470,7 @@ classdef inputFig < handle
                                            0.3*self.robotKin.qdotMax]);
             % TODO replace angular acceleration maxima with realistic
             % values
-            self.outFigure.updatePlots(Qplan,vq,aq,tarray)
+            self.outFigure.updatePlots(Qplan,vq,aq,tarray')
             self.qMatrix = Qplan;
             [self.nMax, ~] = size(self.qMatrix);
             % start timer/animation
