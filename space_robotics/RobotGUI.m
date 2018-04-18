@@ -33,5 +33,5 @@ function RobotGUI()
     inFigure.createFigure;
         
     % Open up spanviewer
-    winopen('spanviewer_files\ARCMate120iC.span');
+%     winopen('spanviewer_files\ARCMate120iC.span');
 end

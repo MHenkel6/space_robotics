@@ -91,6 +91,8 @@ classdef inputFig < handle
             set_param('ps3Sim', 'SimulationCommand', 'start', 'SimulationCommand', 'pause')
             % get runtime object for controller output block
             self.rtoA = get_param('ps3Sim/locationOut', 'RuntimeObject');
+            
+            self.udps([0,0,0,0,0,0]);
         end
         
         %% Create initial figure and uicontrol
@@ -540,7 +542,6 @@ classdef inputFig < handle
                     for jj = 1:N
                         q = self.robotKin.inverseKinematics(CartInterpol(:,jj), R, self.configSelect.Value);
                         if isempty(q) % if qNext is empty, move is not possible
-                            disp(CartInterpol(:,jj))
                             close(waitBarHandle)
                             errordlg('Desired location not possible - Line error', 'Error', 'modal')
                             return
@@ -557,7 +558,6 @@ classdef inputFig < handle
                     for jj = 1:size(CartInterpol, 2)
                         q = self.robotKin.inverseKinematics(CartInterpol(:,jj), R, self.configSelect.Value);
                         if isempty(q) % if qNext is empty, move is not possible
-                            disp(CartInterpol(jj,:))
                             close(waitBarHandle)
                             errordlg('Desired location not possible - Circ error', 'Error', 'modal')
                             return
