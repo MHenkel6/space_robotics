@@ -9,7 +9,7 @@ function [ q,vq,aq, tarray] = path_planning(tm, dt,qstates,constraints,viaPoints
 %R = list of orientations in required motion
 %qstate = initial configuration of joints
 % constraints = 2x6 set of constraints on velocities and accelerations
-
+%% IF NOT ENOUGH TIME TO FINISH VIA POINTS, DELETE IT
  if ~exist('viaPoints','var')
      % third parameter does not exist, so default it to something
       viaPoints = false;
@@ -28,8 +28,7 @@ if viaPoints
     qvia(1,:) = qstates(1,:);
     qvia(end,:) = qstates(end,:);
     qvia(2:end-1,:) = repelem(qstates(2:end-1,:),2,1);
-    %%%%%REMOVE THIS
-    tm = 2*tm;
+    tm = 1.5*tm;
 end
 
 %%Round tm to nearest multiple of dt
@@ -72,30 +71,36 @@ if size(qstates,1) ==2
 else % Multiple points
     
     if size(tm) >1
-        td = tm; %Tm is the times for each of the  data points
+        tdin = tm; %Tm is the times for each of the  data points
     else
-        td = [0;tm/(size(qstates,1)-1)*cumsum(ones((size(qstates,1)-1),1))]; % Or tm is only the end time, each point takes equal amount of time
+        tdin = [0;tm/(size(qstates,1)-1)*cumsum(ones((size(qstates,1)-1),1))]; % Or tm is only the end time, each point takes equal amount of time
     end
+    if viaPoints
+        alpha = constraints(2,:);%maximum acceleration
+        %Calculate velocities
+        vec = (qstates(2:end,:)-qstates(1:end-1,:))./(tdin(2:end)-tdin(1:end-1));
+        tk = max(abs(vec(2:end,:)-vec(1:end-1,:))./alpha,[],2); %transition times
+        qstates = zeros(2*size(qstates,1)-2,6);
+        qstates = qvia;
+        tdlarger = tdin(2:end-1)+0.8*tk;
+        tdsmaller = tdin(2:end-1)-0.8*tk;
+        tcomb = [tdsmaller';tdlarger'];
+        tcomb = tcomb(:)';
+        tvia = [tdin(1),tcomb,tdin(end)]';
+        td = tvia;
+    else
+        td = tdin;
+    end
+   
     for ii = 1:1:6
         alpha = constraints(2,ii);%maximum acceleration
         %Calculate velocities
+
         vec = (qstates(2:end,ii)-qstates(1:end-1,ii))./(td(2:end)-td(1:end-1));
+        tk = zeros(size(vec,1)-1,1);
         tk = abs(vec(2:end)-vec(1:end-1))/alpha; %transition times
-        if viaPoints
-            qstates = zeros(2*size(qstates,1)-2,6);
-            qstates = qvia;
-            tdlarger = td(2:end-1)+0.8*tk;
-            tdsmaller = td(2:end-1)-0.8*tk;
-            tcomb = [tdsmaller';tdlarger'];
-            tcomb = tcomb(:)';
-            tvia = [td(1),tcomb,td(end)];
-            td = tvia;
-            vec = (qstates(2:end,ii)-qstates(1:end-1,ii))./(tvia(2:end)-tvia(1:end-1))';
-            vec(isnan(vec)) =0;    
-            tk = zeros(size(vec,1)-1,1);
-            tk = abs(vec(2:end,ii)-vec(1:end-1,ii))/alpha; %redefine transition times       
-        end
-            
+        vec(isnan(vec)) =0;    
+        
         %Calculate blend times
         t1 = td(2)-sqrt(td(2)^2-2*abs((qstates(2,ii)-qstates(1,ii)))/alpha); %first and last transition times
         tend =  (td(end)-td(end-1))-sqrt((td(end)-td(end-1))^2-2*abs(qstates(end,ii)-qstates(end-1,ii))/alpha);
@@ -113,18 +118,19 @@ else % Multiple points
 
         tblend_compile = [t1,tk',tend];
         tDelta  = td(2:end)-td(1: end-1);
+        
         if max(abs(vec))>constraints(1,ii)
             q = [];
             vq= [];
             aq= [];
             t = [];
             return
-        elseif  any(((tblend_compile(1:end-1) + tblend_compile(2:end))>tDelta))
-            q = [];
-            vq= [];
-            aq= [];
-            t = [];
-            return
+%         elseif  any(((tblend_compile(1:end-1) + tblend_compile(2:end))>tDelta))
+%             q = [];
+%             vq= [];
+%             aq= [];
+%             t = [];
+%             return
         end
         %Calculate position as function of time
         for jj = 1:1:2*size(qstates,1)-1 %loop over every point (qstates size) and every transition (qstates-1)
@@ -153,6 +159,7 @@ else % Multiple points
                 elseif jj == 2*size(qstates,1)-2
                     startindex = round((td((jj)/2)+tk((jj)/2-1)/2)/dt)+1;
                     endindex = size(tarray,2)-tendindex;
+                    
                 else
                     startindex = round((td((jj)/2)+tk((jj)/2-1)/2)/dt)+1;
                     endindex =round((td((jj)/2+1)-tk((jj)/2)/2)/dt);
