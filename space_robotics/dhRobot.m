@@ -131,20 +131,20 @@ classdef dhRobot < handle
                         theta(2, ind) = -atan2(-Vx, -Vy);
                     end
                 else                            % two solutions
-                    C_theta3 = (distance^2 - L1^2 - L2^2) / (2 * L1 * L2);
+                    C_alpha = (distance^2 - L1^2 - L2^2) / (2 * L1 * L2);
                     % elbow up and elbow down solutions
-                    theta(3, ind(1:2)) = -acos(C_theta3);
+                    theta(3, ind(1:2)) = -acos(C_alpha);
                     theta(3, ind(3:4)) = -theta(3, ind(1));
                     theta(3, ind) = theta(3, ind) + phi;
 
                     % corresponding rotations for first joint
                     % beta = angle between lines O1-O2 and O1-O3
-                    beta(1:2) = asin(L2 * sqrt(1 - C_theta3^2) / distance);
+                    beta(1:2) = asin(L2 * sqrt(1 - C_alpha^2) / distance);
                     beta(3:4) = -beta(1);
                     if (L1^2 + distance^2) < L2^2 % take into account possibility of obtuse angle with sine rule
                         beta = [pi pi -pi -pi] - beta;
                     end
-                    psi = -atan2(Vx, Vy); % angle between vertical axis and line O1 - O3
+                    psi = atan2(-Vx, Vy); % angle between vertical axis and line O1 - O3
                     if ii == 1
                         theta(2, ind) = psi + beta;
                     else
@@ -156,17 +156,17 @@ classdef dhRobot < handle
             for ii = 1:2:7
                 % got orientation of O3 axes
                 AWrist = self.forwardKinematics(theta(:,ii), 3);
-                RWrist = AWrist(1:3,1:3);
-                Rt = RWrist' * R;
+                R3 = AWrist(1:3,1:3);
+                Rw = R3' * R;
                 % solve for euler angles
-                theta(4, ii)   = atan2(Rt(2,3), Rt(1,3));
-                theta(4, ii+1) = atan2(-Rt(2,3), -Rt(1,3));
+                theta(4, ii)   = atan2(Rw(2,3), Rw(1,3));
+                theta(4, ii+1) = atan2(-Rw(2,3), -Rw(1,3));
 
-                theta(5, ii)   = atan2(sqrt(Rt(1,3)^2 + Rt(2,3)^2), Rt(3,3));
-                theta(5, ii+1) = atan2(-sqrt(Rt(1,3)^2 + Rt(2,3)^2), Rt(3,3));
+                theta(5, ii)   = atan2(sqrt(Rw(1,3)^2 + Rw(2,3)^2), Rw(3,3));
+                theta(5, ii+1) = atan2(-sqrt(Rw(1,3)^2 + Rw(2,3)^2), Rw(3,3));
 
-                theta(6, ii)   = atan2(Rt(3,2), -Rt(3,1));
-                theta(6, ii+1) = atan2(-Rt(3,2), Rt(3,1));
+                theta(6, ii)   = atan2(Rw(3,2), -Rw(3,1));
+                theta(6, ii+1) = atan2(-Rw(3,2), Rw(3,1));
             end
             % select desired configuration
             theta = theta(:, config)';

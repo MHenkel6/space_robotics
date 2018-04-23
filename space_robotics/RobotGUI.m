@@ -19,8 +19,8 @@ function RobotGUI()
     a(3) = 250;
     d(4) = 835;
     d(6) = 100;
-    qMin = [-185, -175, -229, -200, -180, -450]*pi/180;
-    qMax = [ 185,   85,  229,  200,  180,  450]*pi/180;
+    qMin = [-185, -175, -139, -200, -180, -450]*pi/180;
+    qMax = [ 185,   85,  319,  200,  180,  450]*pi/180;
     qdotMax = [195,178,180,360,360,550]*pi/180; % Maximum joint velocities from data sheet
     % Set up objects;
     robotKin = dhRobot(a, d, alpha, zeros(1,6), 'RRRRRR', dTheta, qMin, qMax,qdotMax); % robot inv & forward kinematics
